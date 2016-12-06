@@ -1,2 +1,2 @@
-# conf
+# conf [![CircleCI](https://circleci.com/gh/segmentio/conf.svg?style=shield)](https://circleci.com/gh/segmentio/conf) [![Go Report Card](https://goreportcard.com/badge/github.com/segmentio/conf)](https://goreportcard.com/report/github.com/segmentio/conf) [![GoDoc](https://godoc.org/github.com/segmentio/conf?status.svg)](https://godoc.org/github.com/segmentio/conf)
 Go package for loading program configuration from multiple sources.
