@@ -61,6 +61,9 @@ type Loader struct {
 // Load uses the loader ld to load the program configuration into dst, and
 // returns the list of program arguments that were not used.
 //
+// The function returns flag.ErrHelp when the list of arguments contained -h,
+// -help, or --help.
+//
 // The dst argument is expected to be a pointer to a struct type where exported
 // fields or fields with a "conf" tag will be used to load the program
 // configuration.
