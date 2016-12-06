@@ -15,7 +15,7 @@ import (
 
 func main() {
     var config struct {
-        Message string `json:"m" help:"A message to print."`
+        Message string `conf:"m" help:"A message to print."`
     }
 
     // Load the configuration, either from a config file, the environment or the program arguments.

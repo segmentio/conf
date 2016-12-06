@@ -38,7 +38,7 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	set := newFlagSet(v, ld.Program)
+	set := newFlagSet(makeConfValue(v), ld.Program)
 
 	if len(ld.FileFlag) != 0 {
 		addFileFlag(set, nil, ld.FileFlag)

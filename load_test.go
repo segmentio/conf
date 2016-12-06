@@ -14,8 +14,8 @@ var (
 
 func TestLoadEnv(t *testing.T) {
 	type point struct {
-		X int `json:"x"`
-		Y int `json:"y"`
+		X int `conf:"x"`
+		Y int `conf:"y"`
 	}
 
 	tests := []struct {
@@ -104,8 +104,8 @@ func TestLoadEnv(t *testing.T) {
 
 func TestLoadArgs(t *testing.T) {
 	type point struct {
-		X int `json:"x"`
-		Y int `json:"y"`
+		X int `conf:"x"`
+		Y int `conf:"y"`
 	}
 
 	tests := []struct {
@@ -194,8 +194,8 @@ func TestLoadArgs(t *testing.T) {
 
 func TestLoadFile(t *testing.T) {
 	type point struct {
-		X int `json:"x"`
-		Y int `json:"y"`
+		X int `conf:"x"`
+		Y int `conf:"y"`
 	}
 
 	tests := []struct {
@@ -322,12 +322,12 @@ points:
 	}
 
 	type point struct {
-		X int `json:"x"`
-		Y int `json:"y"`
+		X int `conf:"x"`
+		Y int `conf:"y"`
 	}
 
 	type config struct {
-		Points []point `json:"points"`
+		Points []point `conf:"points"`
 	}
 
 	for _, ld := range loaders {

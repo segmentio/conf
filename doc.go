@@ -13,7 +13,7 @@
 //
 // The name deduction from the struct field obeys the same rules than those
 // implemented by the standard encoding/json package, which means the program
-// can set the "json" tag to override the default field names in the command
+// can set the "conf" tag to override the default field names in the command
 // line arguments and configuration file.
 //
 // A "help" tag may also be set on the fields of the configuration object to

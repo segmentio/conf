@@ -91,8 +91,7 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	v2 := reflect.New(makeType(v1.Type())).Elem()
-	setValue(v2, v1)
+	v2 := makeConfValue(v1)
 
 	if args, err = ld.load(v2); err != nil {
 		return

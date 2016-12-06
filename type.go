@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/json"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -64,7 +65,7 @@ func makeStructField(f reflect.StructField) reflect.StructField {
 		Name:      f.Name,
 		PkgPath:   f.PkgPath,
 		Type:      makeType(f.Type),
-		Tag:       f.Tag,
+		Tag:       reflect.StructTag(strings.Replace(string(f.Tag), "conf:", "json:", -1)),
 		Anonymous: f.Anonymous,
 	}
 }

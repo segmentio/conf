@@ -78,7 +78,7 @@ func TestPrintHelp(t *testing.T) {
 		B int
 		C int
 		D bool `help:"Set D"`
-		E bool `json:"enable" help:"Enable E"`
+		E bool `conf:"enable" help:"Enable E"`
 	}{A: 1})
 
 	const txt = "Usage of test:\n" +

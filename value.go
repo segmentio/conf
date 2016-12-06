@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+// Creates a copy of v1 as a dynamically generated configuration value usable
+// for loading configs.
+func makeConfValue(v1 reflect.Value) reflect.Value {
+	v2 := reflect.New(makeType(v1.Type())).Elem()
+	setValue(v2, v1)
+	return v2
+}
+
 // Sets v to its zero value.
 func setZero(v reflect.Value) {
 	v.Set(reflect.Zero(v.Type()))
