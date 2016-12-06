@@ -240,14 +240,13 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 			fv = fv.Elem()
 		}
 
+		// For all other field types the delegate is called.
+		do(name, help, fv)
+
 		// Inner structs are flattened to allow composition of configuration
 		// objects.
 		if fv.Kind() == reflect.Struct {
 			scanFields(fv, name, sep, do)
-			continue
 		}
-
-		// For all other field types the delegate is called.
-		do(name, help, fv)
 	}
 }

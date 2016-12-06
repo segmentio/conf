@@ -37,6 +37,10 @@ func TestLoadEnv(t *testing.T) {
 			val: struct{ P *point }{&point{1, 2}},
 			env: []string{"TEST_P_X=1", "TEST_P_Y=2"},
 		},
+		{
+			val: struct{ P *point }{&point{1, 2}},
+			env: []string{"TEST_P={ 'x': 1, 'y': 2 }"},
+		},
 	}
 
 	for _, test := range tests {
@@ -52,7 +56,7 @@ func TestLoadEnv(t *testing.T) {
 			x2 := v2.Interface()
 
 			if !reflect.DeepEqual(x1, x2) {
-				t.Error("%#v", x2)
+				t.Errorf("%#v", x2)
 			}
 		})
 	}
@@ -87,6 +91,10 @@ func TestLoadArgs(t *testing.T) {
 		{
 			val:  struct{ P *point }{&point{1, 2}},
 			args: []string{"-P.x", "1", "-P.y", "2"},
+		},
+		{
+			val:  struct{ P *point }{&point{1, 2}},
+			args: []string{"-P", "{ 'x': 1, 'y': 2 }"},
 		},
 	}
 
