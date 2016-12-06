@@ -15,8 +15,8 @@ import (
 	"github.com/segmentio/jutil"
 )
 
-// Load the program's configuration into dst, and returns the list of arguments
-// that were not used.
+// Load the program's configuration into dst, and returns the list of leftover
+// arguments.
 //
 // The dst argument is expected to be a pointer to a struct type where exported
 // fields or fields with a "conf" tag will be used to load the program
@@ -32,7 +32,7 @@ import (
 // the environment, which takes precendence over the configuration file.
 //
 // If an error is detected with the configurable the function print the usage
-// message to stdout and exit with status code 1.
+// message to stderr and exit with status code 1.
 func Load(dst interface{}) (args []string) {
 	var err error
 
