@@ -9,12 +9,6 @@
 			"revisionTime": "2016-11-23T02:24:14Z"
 		},
 		{
-			"checksumSHA1": "aGyivMZpmn/euHSsp9iLwNoMKQ4=",
-			"path": "github.com/segmentio/conf",
-			"revision": "b5202b8b9cffaa44363b016671a71e68c8dfe7f9",
-			"revisionTime": "2016-12-06T11:04:20Z"
-		},
-		{
 			"checksumSHA1": "mdF4jxevxRCzHFMdVuqscGxdzHk=",
 			"path": "github.com/segmentio/jutil",
 			"revision": "4585c8bf761df9c67b34bf75e9fc62f0a3771198",

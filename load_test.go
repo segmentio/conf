@@ -5,6 +5,11 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
+)
+
+var (
+	testTime = time.Date(2016, 12, 6, 1, 1, 42, 123456789, time.UTC)
 )
 
 func TestLoadEnv(t *testing.T) {
@@ -34,6 +39,22 @@ func TestLoadEnv(t *testing.T) {
 			env: []string{}, // missing => zero value
 		},
 		{
+			val: struct{ S string }{"Hello World!"},
+			env: []string{"TEST_S=Hello World!"},
+		},
+		{
+			val: struct{ S []byte }{[]byte("Hello World!")},
+			env: []string{"TEST_S=SGVsbG8gV29ybGQh"},
+		},
+		{
+			val: struct{ L []int }{[]int{1, 2, 3}},
+			env: []string{"TEST_L=[1, 2, 3]"},
+		},
+		{
+			val: struct{ L [3]int }{[3]int{1, 2, 3}},
+			env: []string{"TEST_L=[1, 2, 3]"},
+		},
+		{
 			val: struct{ P *point }{&point{1, 2}},
 			env: []string{"TEST_P_X=1", "TEST_P_Y=2"},
 		},
@@ -41,22 +62,41 @@ func TestLoadEnv(t *testing.T) {
 			val: struct{ P *point }{&point{1, 2}},
 			env: []string{"TEST_P={ 'x': 1, 'y': 2 }"},
 		},
+		{
+			val: struct{ D time.Duration }{10 * time.Second},
+			env: []string{"TEST_D=10s"},
+		},
+		{
+			val: struct{ T time.Time }{testTime},
+			env: []string{"TEST_T=2016-12-06T01:01:42.123456789Z"},
+		},
+		{
+			val: struct{ T *time.Time }{&testTime},
+			env: []string{"TEST_T=2016-12-06T01:01:42.123456789Z"},
+		},
+		{
+			val: struct{ M map[string]int }{map[string]int{"answer": 42}},
+			env: []string{"TEST_M={ answer: 42 }"},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
+			v3 := reflect.New(makeType(v1.Type())).Elem()
+			setValue(v3, v2)
 
-			if err := loadEnv(v2, "test", test.env); err != nil {
+			if err := loadEnv(v3, "test", test.env); err != nil {
 				t.Error(err)
 			}
 
+			setValue(v2, v3)
 			x1 := v1.Interface()
 			x2 := v2.Interface()
 
 			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("%#v", x2)
+				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
 			}
 		})
 	}
@@ -89,6 +129,22 @@ func TestLoadArgs(t *testing.T) {
 			args: []string{}, // missing => zero value
 		},
 		{
+			val:  struct{ S string }{"Hello World!"},
+			args: []string{"-S", "Hello World!"},
+		},
+		{
+			val:  struct{ S []byte }{[]byte("Hello World!")},
+			args: []string{"-S", "SGVsbG8gV29ybGQh\n"},
+		},
+		{
+			val:  struct{ L []int }{[]int{1, 2, 3}},
+			args: []string{"-L", "[1,2,3]"},
+		},
+		{
+			val:  struct{ L [3]int }{[3]int{1, 2, 3}},
+			args: []string{"-L", "[1,2,3]"},
+		},
+		{
 			val:  struct{ P *point }{&point{1, 2}},
 			args: []string{"-P.x", "1", "-P.y", "2"},
 		},
@@ -96,22 +152,41 @@ func TestLoadArgs(t *testing.T) {
 			val:  struct{ P *point }{&point{1, 2}},
 			args: []string{"-P", "{ 'x': 1, 'y': 2 }"},
 		},
+		{
+			val:  struct{ D time.Duration }{10 * time.Second},
+			args: []string{"-D=10s"},
+		},
+		{
+			val:  struct{ T time.Time }{testTime},
+			args: []string{"-T=2016-12-06T01:01:42.123456789Z"},
+		},
+		{
+			val:  struct{ T *time.Time }{&testTime},
+			args: []string{"-T=2016-12-06T01:01:42.123456789Z"},
+		},
+		{
+			val:  struct{ M map[string]int }{map[string]int{"answer": 42}},
+			args: []string{"-M={ answer: 42 }"},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
+			v3 := reflect.New(makeType(v1.Type())).Elem()
+			setValue(v3, v2)
 
-			if _, err := loadArgs(v2, "test", "", test.args); err != nil {
+			if _, err := loadArgs(v3, "test", "", test.args); err != nil {
 				t.Error(err)
 			}
 
+			setValue(v2, v3)
 			x1 := v1.Interface()
 			x2 := v2.Interface()
 
 			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("%#v", x2)
+				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
 			}
 		})
 	}
@@ -144,8 +219,40 @@ func TestLoadFile(t *testing.T) {
 			file: ``, // missing => zero value
 		},
 		{
+			val:  struct{ S string }{"Hello World!"},
+			file: `S: Hello World!`,
+		},
+		{
+			val:  struct{ S []byte }{[]byte("Hello World!")},
+			file: `S: SGVsbG8gV29ybGQh`,
+		},
+		{
+			val:  struct{ L []int }{[]int{1, 2, 3}},
+			file: `L: [1, 2, 3]`,
+		},
+		{
+			val:  struct{ L [3]int }{[3]int{1, 2, 3}},
+			file: `L: [1, 2, 3]`,
+		},
+		{
 			val:  struct{ P *point }{&point{1, 2}},
 			file: `P: { 'x': 1, 'y': 2 }`,
+		},
+		{
+			val:  struct{ D time.Duration }{10 * time.Second},
+			file: `D: 10s`,
+		},
+		{
+			val:  struct{ T time.Time }{testTime},
+			file: `T: 2016-12-06T01:01:42.123456789Z`,
+		},
+		{
+			val:  struct{ T *time.Time }{&testTime},
+			file: `T: 2016-12-06T01:01:42.123456789Z`,
+		},
+		{
+			val:  struct{ M map[string]int }{map[string]int{"answer": 42}},
+			file: `M: { answer: 42 }`,
 		},
 	}
 
@@ -153,23 +260,27 @@ func TestLoadFile(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
-			args := []string{"-config-file", "test.yml"}
+			v3 := reflect.New(makeType(v1.Type())).Elem()
+			setValue(v3, v2)
 
-			if err := loadFile(v2, "test", "config-file", args, func(file string) (b []byte, err error) {
+			readFile := func(file string) (b []byte, err error) {
 				if file != "test.yml" {
 					t.Error(file)
 				}
 				b = []byte(test.file)
 				return
-			}); err != nil {
+			}
+
+			if err := loadFile(v3, "test", "config-file", []string{"-config-file", "test.yml"}, readFile); err != nil {
 				t.Error(err)
 			}
 
+			setValue(v2, v3)
 			x1 := v1.Interface()
 			x2 := v2.Interface()
 
 			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("%#v\n", x2)
+				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
 			}
 		})
 	}

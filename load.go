@@ -4,24 +4,24 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/segmentio/jutil"
 )
 
-// Load the program's configuration into dst, and returns the list of leftover
+// Load the program's configuration into cfg, and returns the list of leftover
 // arguments.
 //
-// The dst argument is expected to be a pointer to a struct type where exported
+// The cfg argument is expected to be a pointer to a struct type where exported
 // fields or fields with a "conf" tag will be used to load the program
 // configuration.
-// The function panics if dst is not a pointer to struct, or if it's a nil
+// The function panics if cfg is not a pointer to struct, or if it's a nil
 // pointer.
 //
 // The configuration is loaded from the command line, environment and optional
@@ -33,16 +33,23 @@ import (
 //
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
-func Load(dst interface{}) (args []string) {
+func Load(cfg interface{}) (args []string) {
 	var err error
-
-	if args, err = (Loader{
+	var ld = Loader{
 		Args:     os.Args[1:],
 		Env:      os.Environ(),
 		Program:  filepath.Base(os.Args[0]),
 		FileFlag: "config-file",
-	}).Load(dst); err != nil {
-		fmt.Fprint(os.Stderr, err)
+	}
+
+	switch args, err = ld.Load(cfg); err {
+	case nil:
+	case flag.ErrHelp:
+		ld.PrintHelp(cfg)
+		os.Exit(0)
+	default:
+		ld.PrintError(err)
+		ld.PrintHelp(cfg)
 		os.Exit(1)
 	}
 
@@ -58,58 +65,67 @@ type Loader struct {
 	FileFlag string   // command line option for the configuration file
 }
 
-// Load uses the loader ld to load the program configuration into dst, and
+// Load uses the loader ld to load the program configuration into cfg, and
 // returns the list of program arguments that were not used.
 //
 // The function returns flag.ErrHelp when the list of arguments contained -h,
 // -help, or --help.
 //
-// The dst argument is expected to be a pointer to a struct type where exported
+// The cfg argument is expected to be a pointer to a struct type where exported
 // fields or fields with a "conf" tag will be used to load the program
 // configuration.
-// The function panics if dst is not a pointer to struct, or if it's a nil
+// The function panics if cfg is not a pointer to struct, or if it's a nil
 // pointer.
-func (ld Loader) Load(dst interface{}) (args []string, err error) {
-	v := reflect.ValueOf(dst)
+func (ld Loader) Load(cfg interface{}) (args []string, err error) {
+	v1 := reflect.ValueOf(cfg)
 
-	if v.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("cannot load configuration into %T", dst))
+	if v1.Kind() != reflect.Ptr {
+		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	if v.IsNil() {
-		panic(fmt.Sprintf("cannot load configuration into nil %T", dst))
+	if v1.IsNil() {
+		panic(fmt.Sprintf("cannot load configuration into nil %T", cfg))
 	}
 
-	if v = v.Elem(); v.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("cannot load configuration into %T", dst))
+	if v1 = v1.Elem(); v1.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	return ld.load(v)
+	v2 := reflect.New(makeType(v1.Type())).Elem()
+	setValue(v2, v1)
+
+	if args, err = ld.load(v2); err != nil {
+		return
+	}
+
+	setZero(v1)
+	setValue(v1, v2)
+	return
 }
 
-func (ld Loader) load(dst reflect.Value) (args []string, err error) {
-	if err = loadFile(dst, ld.Program, ld.FileFlag, ld.Args, ioutil.ReadFile); err != nil {
+func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
+	if err = loadFile(cfg, ld.Program, ld.FileFlag, ld.Args, ioutil.ReadFile); err != nil {
 		args = nil
 		return
 	}
 
-	if err = loadEnv(dst, ld.Program, ld.Env); err != nil {
+	if err = loadEnv(cfg, ld.Program, ld.Env); err != nil {
 		args = nil
 		return
 	}
 
-	return loadArgs(dst, ld.Program, ld.FileFlag, ld.Args)
+	return loadArgs(cfg, ld.Program, ld.FileFlag, ld.Args)
 }
 
-func loadFile(dst reflect.Value, name string, fileFlag string, args []string, readFile func(string) ([]byte, error)) (err error) {
+func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, readFile func(string) ([]byte, error)) (err error) {
 	if len(fileFlag) != 0 {
 		var a = append([]string{}, args...)
 		var b []byte
 		var f string
-		var v = reflect.New(dst.Type()).Elem() // discard values from the arguments
+		var v = reflect.New(cfg.Type()).Elem() // discard values from the arguments
 
-		set := newFlagSet(v, name, ioutil.Discard)
-		set.StringVar(&f, fileFlag, "", "Path to the configuration file.")
+		set := newFlagSet(v, name)
+		addFileFlag(set, &f, fileFlag)
 
 		if err = set.Parse(a); err != nil {
 			return
@@ -123,54 +139,57 @@ func loadFile(dst reflect.Value, name string, fileFlag string, args []string, re
 			return
 		}
 
-		if err = yaml.Unmarshal(b, dst.Addr().Interface()); err != nil {
+		if err = yaml.Unmarshal(b, cfg.Addr().Interface()); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func loadEnv(dst reflect.Value, name string, env []string) (err error) {
-	type entry struct {
-		key string
-		val value
-	}
-	var entries []entry
+func loadEnv(cfg reflect.Value, name string, env []string) (err error) {
+	if len(env) != 0 {
+		type entry struct {
+			key string
+			val value
+		}
+		var entries []entry
 
-	scanFields(dst, name, "_", func(key string, help string, val reflect.Value) {
-		entries = append(entries, entry{
-			key: snakecaseUpper(key) + "=",
-			val: value{val},
+		scanFields(cfg, name, "_", func(key string, help string, val reflect.Value) {
+			entries = append(entries, entry{
+				key: snakecaseUpper(key) + "=",
+				val: value{val},
+			})
 		})
-	})
 
-	for _, e := range entries {
-		for _, kv := range env {
-			if strings.HasPrefix(kv, e.key) {
-				if err = e.val.Set(kv[len(e.key):]); err != nil {
-					return
+		for _, e := range entries {
+			for _, kv := range env {
+				if strings.HasPrefix(kv, e.key) {
+					if err = e.val.Set(kv[len(e.key):]); err != nil {
+						return
+					}
+					break
 				}
-				break
 			}
 		}
 	}
-
 	return
 }
 
-func loadArgs(dst reflect.Value, name string, fileFlag string, args []string) (leftover []string, err error) {
-	args = append([]string{}, args...)
-	set := newFlagSet(dst, name, ioutil.Discard)
+func loadArgs(cfg reflect.Value, name string, fileFlag string, args []string) (leftover []string, err error) {
+	if len(args) != 0 {
+		args = append([]string{}, args...)
+		set := newFlagSet(cfg, name)
 
-	if len(fileFlag) != 0 {
-		set.String(fileFlag, "", "Path to the configuration file.")
+		if len(fileFlag) != 0 {
+			addFileFlag(set, nil, fileFlag)
+		}
+
+		if err = set.Parse(args); err != nil {
+			return
+		}
+
+		leftover = set.Args()
 	}
-
-	if err = set.Parse(args); err != nil {
-		return
-	}
-
-	leftover = set.Args()
 	return
 }
 
@@ -201,15 +220,22 @@ func (f value) IsBoolFlag() bool {
 	return f.v.IsValid() && f.v.Kind() == reflect.Bool
 }
 
-func newFlagSet(v reflect.Value, name string, output io.Writer) *flag.FlagSet {
+func newFlagSet(cfg reflect.Value, name string) *flag.FlagSet {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
-	set.SetOutput(output)
+	set.SetOutput(ioutil.Discard)
 
-	scanFields(v, "", ".", func(key string, help string, val reflect.Value) {
+	scanFields(cfg, "", ".", func(key string, help string, val reflect.Value) {
 		set.Var(value{val}, key, help)
 	})
 
 	return set
+}
+
+func addFileFlag(set *flag.FlagSet, f *string, arg string) {
+	if f == nil {
+		f = new(string)
+	}
+	set.Var(value{reflect.ValueOf(f).Elem()}, arg, "Path to the configuration file")
 }
 
 func scanFields(v reflect.Value, base string, sep string, do func(string, string, reflect.Value)) {
@@ -218,6 +244,10 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 	for i, n := 0, v.NumField(); i != n; i++ {
 		ft := t.Field(i)
 		fv := v.Field(i)
+
+		if len(ft.PkgPath) != 0 {
+			continue // unexported field
+		}
 
 		name := ft.Name
 		help := ft.Tag.Get("help")
@@ -243,13 +273,17 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 			fv = fv.Elem()
 		}
 
-		// For all other field types the delegate is called.
+		// For all fields the delegate is called.
 		do(name, help, fv)
 
 		// Inner structs are flattened to allow composition of configuration
 		// objects.
 		if fv.Kind() == reflect.Struct {
-			scanFields(fv, name, sep, do)
+			switch fv.Interface().(type) {
+			case time.Time:
+			default:
+				scanFields(fv, name, sep, do)
+			}
 		}
 	}
 }
