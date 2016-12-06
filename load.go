@@ -1,10 +1,10 @@
 package conf
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -103,16 +103,10 @@ func loadFile(dst reflect.Value, name string, fileFlag string, args []string, re
 		var a = append([]string{}, args...)
 		var b []byte
 		var f string
-		var v = reflect.New(dst.Type()).Elem()
+		var v = reflect.New(dst.Type()).Elem() // discard values from the arguments
 
-		out := &bytes.Buffer{}
-		set := flag.NewFlagSet(name, flag.ContinueOnError)
-		set.SetOutput(out)
+		set := newFlagSet(v, name, ioutil.Discard)
 		set.StringVar(&f, fileFlag, "", "Path to the configuration file.")
-
-		scanFields(v, "", ".", func(key string, help string, val reflect.Value) {
-			set.Var(value{val}, key, help)
-		})
 
 		if err = set.Parse(a); err != nil {
 			return
@@ -163,18 +157,11 @@ func loadEnv(dst reflect.Value, name string, env []string) (err error) {
 
 func loadArgs(dst reflect.Value, name string, fileFlag string, args []string) (leftover []string, err error) {
 	args = append([]string{}, args...)
-
-	out := &bytes.Buffer{}
-	set := flag.NewFlagSet(name, flag.ContinueOnError)
-	set.SetOutput(out)
+	set := newFlagSet(dst, name, ioutil.Discard)
 
 	if len(fileFlag) != 0 {
 		set.String(fileFlag, "", "Path to the configuration file.")
 	}
-
-	scanFields(dst, "", ".", func(key string, help string, val reflect.Value) {
-		set.Var(value{val}, key, help)
-	})
 
 	if err = set.Parse(args); err != nil {
 		return
@@ -209,6 +196,17 @@ func (f value) Set(s string) error {
 
 func (f value) IsBoolFlag() bool {
 	return f.v.IsValid() && f.v.Kind() == reflect.Bool
+}
+
+func newFlagSet(v reflect.Value, name string, output io.Writer) *flag.FlagSet {
+	set := flag.NewFlagSet(name, flag.ContinueOnError)
+	set.SetOutput(output)
+
+	scanFields(v, "", ".", func(key string, help string, val reflect.Value) {
+		set.Var(value{val}, key, help)
+	})
+
+	return set
 }
 
 func scanFields(v reflect.Value, base string, sep string, do func(string, string, reflect.Value)) {
