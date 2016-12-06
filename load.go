@@ -52,9 +52,9 @@ func Load(dst interface{}) (args []string) {
 // A Loader can be used to provide a costomized configurable for loading a
 // configuration.
 type Loader struct {
-	Args     []string // the list of arguments
-	Env      []string // the program's environment variables
-	Program  string   // the name of the program
+	Args     []string // list of arguments
+	Env      []string // list of environment variables ["KEY=VALUE", ...]
+	Program  string   // name of the program
 	FileFlag string   // command line option for the configuration file
 }
 
