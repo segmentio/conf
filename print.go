@@ -20,7 +20,7 @@ func (ld Loader) PrintError(err error) {
 
 // FprintError outputs the error message for err to w.
 func (ld Loader) FprintError(w io.Writer, err error) {
-	fmt.Fprintf(w, "Error:\n  %v\n", err)
+	fmt.Fprintf(w, "Error:\n  %v\n\n", err)
 }
 
 // PrintHelp outputs the help message for cfg to stderr.
