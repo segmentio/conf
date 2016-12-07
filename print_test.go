@@ -81,7 +81,8 @@ func TestPrintHelp(t *testing.T) {
 		C int
 		D bool `help:"Set D"`
 		E bool `conf:"enable" help:"Enable E"`
-	}{A: 1})
+		T time.Duration
+	}{A: 1, T: time.Second})
 
 	const txt = "Usage of test:\n" +
 		"  -A int\n" +
@@ -91,6 +92,8 @@ func TestPrintHelp(t *testing.T) {
 		"  -D\tSet D\n" +
 		"  -F string\n" +
 		"    \tPath to the configuration file\n" +
+		"  -T duration\n" +
+		"    \t(default 1s)\n" +
 		"  -enable\n" +
 		"    \tEnable E\n"
 
