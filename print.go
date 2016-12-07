@@ -164,23 +164,23 @@ func monochrome() colors {
 }
 
 func bold(s string) string {
-	return "\033[1m" + s + "\003[0m"
+	return "\033[1m" + s + "\033[0m"
 }
 
 func yellow(s string) string {
-	return "\033[1;33m" + s + "\003[0m"
+	return "\033[1;33m" + s + "\033[0m"
 }
 
 func green(s string) string {
-	return "\033[1;32m" + s + "\003[0m"
+	return "\033[1;32m" + s + "\033[0m"
 }
 
 func red(s string) string {
-	return "\033[1;31m" + s + "\003[0m"
+	return "\033[1;31m" + s + "\033[0m"
 }
 
 func grey(s string) string {
-	return "\033[37m" + s + "\003[0m"
+	return "\033[37m" + s + "\033[0m"
 }
 
 func normal(s string) string {
