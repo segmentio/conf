@@ -87,15 +87,22 @@ func TestPrintHelp(t *testing.T) {
 	const txt = "Usage of test:\n" +
 		"  -A int\n" +
 		"    \t(default 1)\n" +
+		"\n" +
 		"  -B int\n" +
+		"\n" +
 		"  -C int\n" +
+		"\n" +
 		"  -D\tSet D\n" +
+		"\n" +
 		"  -F string\n" +
 		"    \tPath to the configuration file\n" +
+		"\n" +
 		"  -T duration\n" +
 		"    \t(default 1s)\n" +
+		"\n" +
 		"  -enable\n" +
-		"    \tEnable E\n"
+		"    \tEnable E\n" +
+		"\n"
 
 	if s := b.String(); s != txt {
 		t.Error(s)

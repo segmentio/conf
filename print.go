@@ -90,6 +90,8 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			}
 			fmt.Fprintf(w, "\t%s\n", strings.Join(h, " "))
 		}
+
+		fmt.Fprint(w, "\n")
 	})
 }
 
@@ -146,7 +148,7 @@ func stderr() colors {
 func colorized() colors {
 	return colors{
 		titles:  bold,
-		keys:    yellow,
+		keys:    blue,
 		types:   green,
 		defvals: grey,
 		errors:  red,
@@ -167,8 +169,8 @@ func bold(s string) string {
 	return "\033[1m" + s + "\033[0m"
 }
 
-func yellow(s string) string {
-	return "\033[1;33m" + s + "\033[0m"
+func blue(s string) string {
+	return "\033[1;34m" + s + "\033[0m"
 }
 
 func green(s string) string {
@@ -180,7 +182,7 @@ func red(s string) string {
 }
 
 func grey(s string) string {
-	return "\033[37m" + s + "\033[0m"
+	return "\033[1;30m" + s + "\033[0m"
 }
 
 func normal(s string) string {
