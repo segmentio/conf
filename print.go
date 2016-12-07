@@ -9,29 +9,39 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // PrintError outputs the error message for err to stderr.
 func (ld Loader) PrintError(err error) {
 	w := bufio.NewWriter(os.Stderr)
-	ld.FprintError(w, err)
+	ld.fprintError(w, err, stderr())
 	w.Flush()
 }
 
 // FprintError outputs the error message for err to w.
 func (ld Loader) FprintError(w io.Writer, err error) {
-	fmt.Fprintf(w, "Error:\n  %v\n\n", err)
+	ld.fprintError(w, err, monochrome())
 }
 
 // PrintHelp outputs the help message for cfg to stderr.
 func (ld Loader) PrintHelp(cfg interface{}) {
 	w := bufio.NewWriter(os.Stderr)
-	ld.FprintHelp(w, cfg)
+	ld.fprintHelp(w, cfg, stderr())
 	w.Flush()
 }
 
 // FprintHelp outputs the help message for cfg to w.
 func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
+	ld.fprintHelp(w, cfg, monochrome())
+}
+
+func (ld Loader) fprintError(w io.Writer, err error, col colors) {
+	fmt.Fprintf(w, "%s\n  %s\n\n", col.titles("Error:"), col.errors(err.Error()))
+}
+
+func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	v := reflect.ValueOf(cfg)
 
 	if v.Kind() == reflect.Ptr {
@@ -48,7 +58,7 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 		addFileFlag(set, nil, ld.FileFlag)
 	}
 
-	fmt.Fprintf(w, "Usage of %s:\n", ld.Program)
+	fmt.Fprintf(w, "%s\n", col.titles(fmt.Sprintf("Usage of %s:", ld.Program)))
 
 	// Outputs the flags following the same format than the standard flag
 	// package. The main difference is in the type names which are set to
@@ -57,11 +67,11 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 		v := f.Value.(value)
 		h := []string{}
 
-		fmt.Fprintf(w, "  -%s", f.Name)
+		fmt.Fprintf(w, "  %s", col.keys("-"+f.Name))
 
 		switch {
 		case !v.IsBoolFlag():
-			fmt.Fprintf(w, " %s\n", prettyType(v.v.Type()))
+			fmt.Fprintf(w, " %s\n", col.types(prettyType(v.v.Type())))
 		case len(f.Name) > 4: // put help message inline for boolean flags
 			fmt.Fprint(w, "\n")
 		}
@@ -71,7 +81,7 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 		}
 
 		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isZeroValue(v.v) && v.v.Kind() != reflect.Struct {
-			h = append(h, "(default "+s+")")
+			h = append(h, col.defvals("(default "+s+")"))
 		}
 
 		if len(h) != 0 {
@@ -115,4 +125,64 @@ func prettyType(t reflect.Type) string {
 	default:
 		return t.String()
 	}
+}
+
+type colors struct {
+	titles  func(string) string
+	keys    func(string) string
+	types   func(string) string
+	defvals func(string) string
+	errors  func(string) string
+}
+
+func stderr() colors {
+	if terminal.IsTerminal(2) {
+		return colorized()
+	} else {
+		return monochrome()
+	}
+}
+
+func colorized() colors {
+	return colors{
+		titles:  bold,
+		keys:    yellow,
+		types:   green,
+		defvals: grey,
+		errors:  red,
+	}
+}
+
+func monochrome() colors {
+	return colors{
+		titles:  normal,
+		keys:    normal,
+		types:   normal,
+		defvals: normal,
+		errors:  normal,
+	}
+}
+
+func bold(s string) string {
+	return "\033[1m" + s + "\003[0m"
+}
+
+func yellow(s string) string {
+	return "\033[1;33m" + s + "\003[0m"
+}
+
+func green(s string) string {
+	return "\033[1;32m" + s + "\003[0m"
+}
+
+func red(s string) string {
+	return "\033[1;31m" + s + "\003[0m"
+}
+
+func grey(s string) string {
+	return "\033[37m" + s + "\003[0m"
+}
+
+func normal(s string) string {
+	return s
 }
