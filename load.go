@@ -200,6 +200,16 @@ func (f value) String() string {
 	if !f.v.IsValid() {
 		return ""
 	}
+
+	switch x := f.v.Interface().(type) {
+	case time.Time:
+		return x.Format(time.RFC3339Nano)
+	case time.Duration:
+		return x.String()
+	case duration:
+		return time.Duration(x).String()
+	}
+
 	b, _ := json.Marshal(f.v.Interface())
 	return string(b)
 }
