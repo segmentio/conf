@@ -34,6 +34,10 @@ func (ld Loader) PrintHelp(cfg interface{}) {
 func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 	v := reflect.ValueOf(cfg)
 
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
 	if v.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
