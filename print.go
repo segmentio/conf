@@ -58,7 +58,10 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		addFileFlag(set, nil, ld.FileFlag)
 	}
 
-	fmt.Fprintf(w, "%s\n", col.titles(fmt.Sprintf("Usage of %s:", ld.Program)))
+	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
+	fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Program)
+
+	fmt.Fprintf(w, "%s\n", col.titles("Options:"))
 
 	// Outputs the flags following the same format than the standard flag
 	// package. The main difference is in the type names which are set to
@@ -72,7 +75,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		switch {
 		case !v.IsBoolFlag():
 			fmt.Fprintf(w, " %s\n", col.types(prettyType(v.v.Type())))
-		case len(f.Name) > 4: // put help message inline for boolean flags
+		case len(f.Name) >= 4: // put help message inline for boolean flags
 			fmt.Fprint(w, "\n")
 		}
 
@@ -85,7 +88,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		}
 
 		if len(h) != 0 {
-			if !v.IsBoolFlag() || len(f.Name) > 4 {
+			if !v.IsBoolFlag() || len(f.Name) >= 4 {
 				fmt.Fprint(w, "    ")
 			}
 			fmt.Fprintf(w, "\t%s\n", strings.Join(h, " "))
