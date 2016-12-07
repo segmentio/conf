@@ -3,6 +3,7 @@ package conf
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -12,7 +13,7 @@ func TestPrettyType(t *testing.T) {
 		v interface{}
 		s string
 	}{
-		{nil, "<nil>"},
+		{nil, "unknown"},
 		{false, "bool"},
 
 		{int(0), "int"},
@@ -34,18 +35,19 @@ func TestPrettyType(t *testing.T) {
 		{time.Time{}, "time"},
 
 		{"", "string"},
-		{[]byte{}, "bytes"},
+		{[]byte{}, "base64"},
 
 		{[]int{}, "list"},
 		{[1]int{}, "list"},
 
 		{map[int]int{}, "object"},
 		{struct{}{}, "object"},
+		{&struct{}{}, "object"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.s, func(t *testing.T) {
-			if s := prettyType(test.v); s != test.s {
+			if s := prettyType(reflect.TypeOf(test.v)); s != test.s {
 				t.Error(s)
 			}
 		})

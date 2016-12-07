@@ -55,14 +55,13 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 	// values returned by prettyType.
 	set.VisitAll(func(f *flag.Flag) {
 		v := f.Value.(value)
-		x := v.v.Interface()
 		h := []string{}
 
 		fmt.Fprintf(w, "  -%s", f.Name)
 
 		switch {
 		case !v.IsBoolFlag():
-			fmt.Fprintf(w, " %s\n", prettyType(x))
+			fmt.Fprintf(w, " %s\n", prettyType(v.v.Type()))
 		case len(f.Name) > 4: // put help message inline for boolean flags
 			fmt.Fprint(w, "\n")
 		}
@@ -83,30 +82,36 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 	})
 }
 
-func prettyType(v interface{}) string {
-	if v == nil {
-		return "<nil>"
+func prettyType(t reflect.Type) string {
+	if t == nil {
+		return "unknown"
 	}
 
-	switch v.(type) {
-	case time.Duration:
+	switch {
+	case t == reflect.TypeOf(time.Duration(0)):
 		return "duration"
 
-	case time.Time:
+	case t == reflect.TypeOf(duration(0)):
+		return "duration"
+
+	case t == reflect.TypeOf(time.Time{}):
 		return "time"
 	}
 
-	switch v := reflect.ValueOf(v); v.Kind() {
+	switch t.Kind() {
 	case reflect.Struct, reflect.Map:
 		return "object"
 
 	case reflect.Slice, reflect.Array:
-		if v.Type().Elem().Kind() == reflect.Uint8 {
-			return "bytes"
+		if t.Elem().Kind() == reflect.Uint8 {
+			return "base64"
 		}
 		return "list"
 
+	case reflect.Ptr:
+		return prettyType(t.Elem())
+
 	default:
-		return v.Type().String()
+		return t.String()
 	}
 }
