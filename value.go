@@ -119,6 +119,10 @@ func setPtrValue(v1 reflect.Value, v2 reflect.Value) {
 	v1.Set(e1)
 }
 
-func isZeroValue(v reflect.Value) bool {
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Array:
+		return v.Len() == 0
+	}
 	return reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }

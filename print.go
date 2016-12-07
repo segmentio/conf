@@ -83,7 +83,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			h = append(h, s)
 		}
 
-		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isZeroValue(v.v) && v.v.Kind() != reflect.Struct {
+		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isEmptyValue(v.v) && v.v.Kind() != reflect.Struct {
 			h = append(h, col.defvals("(default "+s+")"))
 		}
 
