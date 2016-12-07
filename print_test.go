@@ -60,7 +60,7 @@ func TestPrintError(t *testing.T) {
 
 	ld.FprintError(b, errors.New("A: missing value"))
 
-	const txt = "Error:\n  A: missing value\n"
+	const txt = "Error:\n  A: missing value\n\n"
 
 	if s := b.String(); s != txt {
 		t.Error(s)

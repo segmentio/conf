@@ -69,7 +69,8 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 		if s := f.Usage; len(s) != 0 {
 			h = append(h, s)
 		}
-		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isZeroValue(v.v) {
+
+		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isZeroValue(v.v) && v.v.Kind() != reflect.Struct {
 			h = append(h, "(default "+s+")")
 		}
 
