@@ -125,14 +125,14 @@ var (
 		},
 
 		{
-			val:  struct{ A net.TCPAddr }{net.TCPAddr{net.ParseIP("::1"), 80, "11"}},
+			val:  struct{ A net.TCPAddr }{net.TCPAddr{IP: net.ParseIP("::1"), Port: 80, Zone: "11"}},
 			file: `A: '[::1%11]:80'`,
 			args: []string{"-A", "'[::1%11]:80'"},
 			env:  []string{"TEST_A='[::1%11]:80'"},
 		},
 
 		{
-			val:  struct{ A net.UDPAddr }{net.UDPAddr{net.IPv4(127, 0, 0, 1), 53, ""}},
+			val:  struct{ A net.UDPAddr }{net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 53, Zone: ""}},
 			file: `A: 127.0.0.1:53`,
 			args: []string{"-A", "127.0.0.1:53"},
 			env:  []string{"TEST_A=127.0.0.1:53"},

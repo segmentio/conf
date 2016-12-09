@@ -52,12 +52,12 @@ func testType(t *testing.T, v interface{}) {
 
 	b, err := m.MarshalText()
 	if err != nil {
-		t.Errorf("%#v: MarshalText: %s", err)
+		t.Errorf("%#v: MarshalText: %s", v, err)
 		return
 	}
 
 	if err := u.UnmarshalText(b); err != nil {
-		t.Errorf("%#v: UnmarshalText: %s", err)
+		t.Errorf("%#v: UnmarshalText: %s", v, err)
 		return
 	}
 

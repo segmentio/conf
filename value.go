@@ -167,9 +167,17 @@ func convertConfDuration(t reflect.Type, d Duration) (v reflect.Value) {
 func convertConfNetAddr(t reflect.Type, a NetAddr) (v reflect.Value) {
 	switch t {
 	case netTCPAddrType:
-		v = reflect.ValueOf(net.TCPAddr{a.IP, a.Port, a.Zone})
+		v = reflect.ValueOf(net.TCPAddr{
+			IP:   a.IP,
+			Port: a.Port,
+			Zone: a.Zone,
+		})
 	case netUDPAddrType:
-		v = reflect.ValueOf(net.UDPAddr{a.IP, a.Port, a.Zone})
+		v = reflect.ValueOf(net.UDPAddr{
+			IP:   a.IP,
+			Port: a.Port,
+			Zone: a.Zone,
+		})
 	}
 	return
 }
@@ -201,7 +209,11 @@ func convertDuration(t reflect.Type, d time.Duration) (v reflect.Value) {
 func convertTCPAddr(t reflect.Type, a net.TCPAddr) (v reflect.Value) {
 	switch t {
 	case confNetAddrType:
-		v = reflect.ValueOf(NetAddr{a.IP, a.Port, a.Zone})
+		v = reflect.ValueOf(NetAddr{
+			IP:   a.IP,
+			Port: a.Port,
+			Zone: a.Zone,
+		})
 	}
 	return
 }
@@ -209,7 +221,11 @@ func convertTCPAddr(t reflect.Type, a net.TCPAddr) (v reflect.Value) {
 func convertUDPAddr(t reflect.Type, a net.UDPAddr) (v reflect.Value) {
 	switch t {
 	case confNetAddrType:
-		v = reflect.ValueOf(NetAddr{a.IP, a.Port, a.Zone})
+		v = reflect.ValueOf(NetAddr{
+			IP:   a.IP,
+			Port: a.Port,
+			Zone: a.Zone,
+		})
 	}
 	return
 }
