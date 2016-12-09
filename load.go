@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"encoding"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -149,14 +150,14 @@ func loadEnv(cfg reflect.Value, name string, env []string) (err error) {
 	if len(env) != 0 {
 		type entry struct {
 			key string
-			val value
+			val flagValue
 		}
 		var entries []entry
 
 		scanFields(cfg, name, "_", func(key string, help string, val reflect.Value) {
 			entries = append(entries, entry{
 				key: snakecaseUpper(key) + "=",
-				val: value{val},
+				val: flagValue{val},
 			})
 		})
 
@@ -192,40 +193,39 @@ func loadArgs(cfg reflect.Value, name string, fileFlag string, args []string) (l
 	return
 }
 
-type value struct {
+type flagValue struct {
 	v reflect.Value
 }
 
-func (f value) String() string {
+func (f flagValue) String() string {
+	var b []byte
+
 	if !f.v.IsValid() {
 		return ""
 	}
 
-	switch x := f.v.Interface().(type) {
-	case time.Time:
-		return x.Format(time.RFC3339Nano)
-	case time.Duration:
-		return x.String()
-	case duration:
-		return time.Duration(x).String()
+	switch v := f.v.Interface().(type) {
+	case encoding.TextMarshaler:
+		b, _ = v.MarshalText()
+	default:
+		b, _ = json.Marshal(v)
 	}
 
-	b, _ := json.Marshal(f.v.Interface())
 	return string(b)
 }
 
-func (f value) Get() interface{} {
+func (f flagValue) Get() interface{} {
 	if f.v.IsValid() {
 		return nil
 	}
 	return f.v.Interface()
 }
 
-func (f value) Set(s string) error {
+func (f flagValue) Set(s string) error {
 	return yaml.Unmarshal([]byte(s), f.v.Addr().Interface())
 }
 
-func (f value) IsBoolFlag() bool {
+func (f flagValue) IsBoolFlag() bool {
 	return f.v.IsValid() && f.v.Kind() == reflect.Bool
 }
 
@@ -234,7 +234,7 @@ func newFlagSet(cfg reflect.Value, name string) *flag.FlagSet {
 	set.SetOutput(ioutil.Discard)
 
 	scanFields(cfg, "", ".", func(key string, help string, val reflect.Value) {
-		set.Var(value{val}, key, help)
+		set.Var(flagValue{val}, key, help)
 	})
 
 	return set
@@ -244,7 +244,7 @@ func addFileFlag(set *flag.FlagSet, f *string, arg string) {
 	if f == nil {
 		f = new(string)
 	}
-	set.Var(value{reflect.ValueOf(f).Elem()}, arg, "Path to the configuration file")
+	set.Var(flagValue{reflect.ValueOf(f).Elem()}, arg, "Path to the configuration file")
 }
 
 func scanFields(v reflect.Value, base string, sep string, do func(string, string, reflect.Value)) {

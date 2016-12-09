@@ -67,7 +67,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	// package. The main difference is in the type names which are set to
 	// values returned by prettyType.
 	set.VisitAll(func(f *flag.Flag) {
-		v := f.Value.(value)
+		v := f.Value.(flagValue)
 		h := []string{}
 
 		fmt.Fprintf(w, "  %s", col.keys("-"+f.Name))
@@ -107,7 +107,7 @@ func prettyType(t reflect.Type) string {
 	case t == reflect.TypeOf(time.Duration(0)):
 		return "duration"
 
-	case t == reflect.TypeOf(duration(0)):
+	case t == reflect.TypeOf(Duration(0)):
 		return "duration"
 
 	case t == reflect.TypeOf(time.Time{}):
