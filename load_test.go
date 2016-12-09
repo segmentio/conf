@@ -242,23 +242,23 @@ points:
 	defer os.Remove(configFile)
 
 	loaders := []Loader{
-		Loader{
+		{
 			Program: "test",
 			Args:    []string{"-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]`, "A", "B", "C"},
 			Env:     []string{},
 		},
-		Loader{
+		{
 			Program: "test",
 			Args:    []string{"A", "B", "C"},
 			Env:     []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]"},
 		},
-		Loader{
+		{
 			Program:  "test",
 			Args:     []string{"-f", configFile, "A", "B", "C"},
 			Env:      []string{},
 			FileFlag: "f",
 		},
-		Loader{
+		{
 			Program:  "test",
 			Args:     []string{"-f", configFile, "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]`, "A", "B", "C"},
 			Env:      []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]"},
