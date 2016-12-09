@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// This Duration type is intended to be used in configuration structs to provide
+// The Duration type is intended to be used in configuration structs to provide
 // automatic loading an type checking of duration values.
 //
 // The main need for this type comes from the fact that the standard

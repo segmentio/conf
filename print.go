@@ -143,9 +143,8 @@ type colors struct {
 func stderr() colors {
 	if terminal.IsTerminal(2) {
 		return colorized()
-	} else {
-		return monochrome()
 	}
+	return monochrome()
 }
 
 func colorized() colors {
