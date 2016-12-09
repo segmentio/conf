@@ -29,8 +29,8 @@ import (
 // configuration file if the -config-file option is present in the program
 // arguments.
 //
-// Values found in the progrma arguments take precendence over those found in
-// the environment, which takes precendence over the configuration file.
+// Values found in the progrma arguments take precedence over those found in
+// the environment, which takes precedence over the configuration file.
 //
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
