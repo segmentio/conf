@@ -216,7 +216,7 @@ func TestLoadFile(t *testing.T) {
 				return
 			}
 
-			if err := loadFile(v3, "test", "config-file", []string{"-config-file", "test.yml"}, readFile); err != nil {
+			if err := loadFile(v3, "test", "config-file", []string{"-config-file", "test.yml"}, nil, readFile); err != nil {
 				t.Error(err)
 			}
 
@@ -237,32 +237,42 @@ func TestLoader(t *testing.T) {
 points:
  - { 'x': 0, 'y': 0 }
  - { 'x': 1, 'y': 2 }
- - { 'x': 42, 'y': 42 }
+ - { 'x': {{ .X }}, 'y': {{ .Y }} }
 `), 0644)
 	defer os.Remove(configFile)
 
 	loaders := []Loader{
 		{
 			Program: "test",
-			Args:    []string{"-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]`, "A", "B", "C"},
+			Args:    []string{"-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
 			Env:     []string{},
 		},
+
 		{
 			Program: "test",
 			Args:    []string{"A", "B", "C"},
-			Env:     []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]"},
+			Env:     []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]"},
 		},
+
 		{
 			Program:  "test",
 			Args:     []string{"-f", configFile, "A", "B", "C"},
 			Env:      []string{},
 			FileFlag: "f",
-		},
+			Vars: struct {
+				X int
+				Y int
+			}{21, 42}},
+
 		{
 			Program:  "test",
-			Args:     []string{"-f", configFile, "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]`, "A", "B", "C"},
-			Env:      []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':42,'y':42}]"},
+			Args:     []string{"-f", configFile, "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
+			Env:      []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]"},
 			FileFlag: "f",
+			Vars: struct {
+				X int
+				Y int
+			}{21, 42},
 		},
 	}
 
@@ -288,7 +298,7 @@ points:
 				t.Error("bad args:", args)
 			}
 
-			if !reflect.DeepEqual(cfg, config{[]point{{0, 0}, {1, 2}, {42, 42}}}) {
+			if !reflect.DeepEqual(cfg, config{[]point{{0, 0}, {1, 2}, {21, 42}}}) {
 				t.Error("bad config:", cfg)
 			}
 		})

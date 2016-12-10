@@ -1,10 +1,12 @@
 package conf
 
 import (
+	"bytes"
 	"encoding"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -36,10 +38,13 @@ import (
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
 	var err error
+	var name = filepath.Base(os.Args[0])
+	var env = os.Environ()
 	var ld = Loader{
 		Args:     os.Args[1:],
-		Env:      os.Environ(),
-		Program:  filepath.Base(os.Args[0]),
+		Env:      env,
+		Vars:     makeEnvVars(env),
+		Program:  name,
 		FileFlag: "config-file",
 	}
 
@@ -60,10 +65,11 @@ func Load(cfg interface{}) (args []string) {
 // A Loader can be used to provide a costomized configurable for loading a
 // configuration.
 type Loader struct {
-	Args     []string // list of arguments
-	Env      []string // list of environment variables ["KEY=VALUE", ...]
-	Program  string   // name of the program
-	FileFlag string   // command line option for the configuration file
+	Args     []string    // list of arguments
+	Env      []string    // list of environment variables ["KEY=VALUE", ...]
+	Vars     interface{} // template variables, may be a struct, map, etc..
+	Program  string      // name of the program
+	FileFlag string      // command line option for the configuration file
 }
 
 // Load uses the loader ld to load the program configuration into cfg, and
@@ -104,7 +110,7 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 }
 
 func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
-	if err = loadFile(cfg, ld.Program, ld.FileFlag, ld.Args, ioutil.ReadFile); err != nil {
+	if err = loadFile(cfg, ld.Program, ld.FileFlag, ld.Args, ld.Vars, ioutil.ReadFile); err != nil {
 		args = nil
 		return
 	}
@@ -117,7 +123,7 @@ func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
 	return loadArgs(cfg, ld.Program, ld.FileFlag, ld.Args)
 }
 
-func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, readFile func(string) ([]byte, error)) (err error) {
+func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, vars interface{}, readFile func(string) ([]byte, error)) (err error) {
 	if len(fileFlag) != 0 {
 		var a = append([]string{}, args...)
 		var b []byte
@@ -139,7 +145,19 @@ func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, re
 			return
 		}
 
-		if err = yaml.Unmarshal(b, cfg.Addr().Interface()); err != nil {
+		tpl := template.New("config")
+		buf := &bytes.Buffer{}
+		buf.Grow(65536)
+
+		if _, err = tpl.Parse(string(b)); err != nil {
+			return
+		}
+
+		if err = tpl.Execute(buf, vars); err != nil {
+			return
+		}
+
+		if err = yaml.Unmarshal(buf.Bytes(), cfg.Addr().Interface()); err != nil {
 			return
 		}
 	}
@@ -295,4 +313,23 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 			}
 		}
 	}
+}
+
+func makeEnvVars(env []string) (vars map[string]string) {
+	vars = make(map[string]string)
+
+	for _, e := range env {
+		var k string
+		var v string
+
+		if off := strings.IndexByte(e, '='); off >= 0 {
+			k, v = e[:off], e[off+1:]
+		} else {
+			k = e
+		}
+
+		vars[k] = v
+	}
+
+	return vars
 }
