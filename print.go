@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -103,15 +102,21 @@ func prettyType(t reflect.Type) string {
 		return "unknown"
 	}
 
-	switch {
-	case t == reflect.TypeOf(time.Duration(0)):
+	switch t {
+	case timeDurationType, confDurationType:
 		return "duration"
 
-	case t == reflect.TypeOf(Duration(0)):
-		return "duration"
-
-	case t == reflect.TypeOf(time.Time{}):
+	case timeTimeType:
 		return "time"
+
+	case netTCPAddrType, netUDPAddrType, confNetAddrType:
+		return "address"
+
+	case urlURLType, confURLType:
+		return "url"
+
+	case mailAddressType, confEmailType:
+		return "email"
 	}
 
 	switch t.Kind() {

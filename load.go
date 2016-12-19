@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/segmentio/jutil"
@@ -306,8 +305,15 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 		// Inner structs are flattened to allow composition of configuration
 		// objects.
 		if fv.Kind() == reflect.Struct {
-			switch fv.Interface().(type) {
-			case time.Time:
+			switch ft.Type {
+			case timeTimeType:
+			case netTCPAddrType:
+			case netUDPAddrType:
+			case confNetAddrType:
+			case urlURLType:
+			case confURLType:
+			case mailAddressType:
+			case confEmailType:
 			default:
 				scanFields(fv, name, sep, do)
 			}
