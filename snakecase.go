@@ -18,38 +18,38 @@ func snakecase(s string) string {
 	for i >= 0 {
 		switch {
 		case isLower(s[i]): // sequence of lowercase, maybe starting with an uppercase
-			for i >= 0 && s[i] != '_' && !isUpper(s[i]) {
+			for i >= 0 && !isSeparator(s[i]) && !isUpper(s[i]) {
 				b = append(b, s[i])
 				i--
 			}
 
 			if i >= 0 {
-				b = append(b, s[i])
+				b = append(b, snakebyte(s[i]))
 				i--
-				if s[i+1] == '_' { // avoid double underscore if we have "_word"
+				if isSeparator(s[i+1]) { // avoid double underscore if we have "_word"
 					continue
 				}
 			}
 
-			if i >= 0 && s[i] != '_' { // avoid double underscores if we have "_Word"
+			if i >= 0 && !isSeparator(s[i]) { // avoid double underscores if we have "_Word"
 				b = append(b, '_')
 			}
 
 		case isUpper(s[i]): // sequence of uppercase
-			for i >= 0 && s[i] != '_' && !isLower(s[i]) {
+			for i >= 0 && !isSeparator(s[i]) && !isLower(s[i]) {
 				b = append(b, s[i])
 				i--
 			}
 
 			if i >= 0 {
-				if s[i] == '_' {
+				if isSeparator(s[i]) {
 					i--
 				}
 				b = append(b, '_')
 			}
 
 		default: // not a letter, it'll be part of the next sequence
-			b = append(b, s[i])
+			b = append(b, snakebyte(s[i]))
 			i--
 		}
 	}
@@ -62,6 +62,17 @@ func snakecase(s string) string {
 	}
 
 	return string(b)
+}
+
+func snakebyte(b byte) byte {
+	if isSeparator(b) {
+		return '_'
+	}
+	return b
+}
+
+func isSeparator(c byte) bool {
+	return c == '_' || c == '-'
 }
 
 func isUpper(c byte) bool {

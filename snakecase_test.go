@@ -21,6 +21,7 @@ var (
 		{"__hello_world__", "__hello_world__"},
 		{"__Hello_World__", "__hello_world__"},
 		{"__Hello__World__", "__hello__world__"},
+		{"hello-world", "hello_world"},
 	}
 )
 
