@@ -25,6 +25,3 @@ _testmain.go
 
 # Emacs
 *~
-
-# govendor
-/vendor/*/
