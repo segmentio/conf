@@ -116,5 +116,7 @@ func TestPrintHelp(t *testing.T) {
 
 	if s := b.String(); s != txt {
 		t.Error(s)
+		t.Error(txt)
+		t.Error(len(s), len(txt))
 	}
 }

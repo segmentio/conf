@@ -2,8 +2,6 @@ package conf
 
 import (
 	"bytes"
-	"encoding"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"html/template"
@@ -13,8 +11,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/ghodss/yaml"
-	"github.com/segmentio/jutil"
+	"github.com/segmentio/objconv"
+	"github.com/segmentio/objconv/yaml"
 )
 
 // Load the program's configuration into cfg, and returns the list of leftover
@@ -97,7 +95,7 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	v2 := makeConfValue(v1)
+	v2 := makeValue(v1)
 
 	if args, err = ld.load(v2); err != nil {
 		return
@@ -174,7 +172,7 @@ func loadEnv(cfg reflect.Value, name string, env []string) (err error) {
 		scanFields(cfg, name, "_", func(key string, help string, val reflect.Value) {
 			entries = append(entries, entry{
 				key: snakecaseUpper(key) + "=",
-				val: flagValue{val},
+				val: makeFlagValue(val),
 			})
 		})
 
@@ -210,48 +208,12 @@ func loadArgs(cfg reflect.Value, name string, fileFlag string, args []string) (l
 	return
 }
 
-type flagValue struct {
-	v reflect.Value
-}
-
-func (f flagValue) String() string {
-	var b []byte
-
-	if !f.v.IsValid() {
-		return ""
-	}
-
-	switch v := f.v.Interface().(type) {
-	case encoding.TextMarshaler:
-		b, _ = v.MarshalText()
-	default:
-		b, _ = json.Marshal(v)
-	}
-
-	return string(b)
-}
-
-func (f flagValue) Get() interface{} {
-	if f.v.IsValid() {
-		return nil
-	}
-	return f.v.Interface()
-}
-
-func (f flagValue) Set(s string) error {
-	return yaml.Unmarshal([]byte(s), f.v.Addr().Interface())
-}
-
-func (f flagValue) IsBoolFlag() bool {
-	return f.v.IsValid() && f.v.Kind() == reflect.Bool
-}
-
 func newFlagSet(cfg reflect.Value, name string) *flag.FlagSet {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	set.SetOutput(ioutil.Discard)
 
 	scanFields(cfg, "", ".", func(key string, help string, val reflect.Value) {
-		set.Var(flagValue{val}, key, help)
+		set.Var(makeFlagValue(val), key, help)
 	})
 
 	return set
@@ -261,7 +223,7 @@ func addFileFlag(set *flag.FlagSet, f *string, arg string) {
 	if f == nil {
 		f = new(string)
 	}
-	set.Var(flagValue{reflect.ValueOf(f).Elem()}, arg, "Path to the configuration file")
+	set.Var(makeFlagValue(reflect.ValueOf(f).Elem()), arg, "Path to the configuration file")
 }
 
 func scanFields(v reflect.Value, base string, sep string, do func(string, string, reflect.Value)) {
@@ -277,14 +239,14 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 
 		name := ft.Name
 		help := ft.Tag.Get("help")
-		jtag := jutil.ParseTag(ft.Tag.Get("json"))
+		tag, _, _ := objconv.ParseTag(ft.Tag.Get("objconv"))
 
-		if jtag.Skip {
+		if tag == "-" {
 			continue
 		}
 
-		if len(jtag.Name) != 0 {
-			name = jtag.Name
+		if len(tag) != 0 {
+			name = tag
 		}
 
 		if len(base) != 0 {
@@ -304,19 +266,8 @@ func scanFields(v reflect.Value, base string, sep string, do func(string, string
 
 		// Inner structs are flattened to allow composition of configuration
 		// objects.
-		if fv.Kind() == reflect.Struct {
-			switch ft.Type {
-			case timeTimeType:
-			case netTCPAddrType:
-			case netUDPAddrType:
-			case confNetAddrType:
-			case urlURLType:
-			case confURLType:
-			case mailAddressType:
-			case confEmailType:
-			default:
-				scanFields(fv, name, sep, do)
-			}
+		if fv.Kind() == reflect.Struct && !specialType(ft.Type) {
+			scanFields(fv, name, sep, do)
 		}
 	}
 }

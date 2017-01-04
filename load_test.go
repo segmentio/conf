@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/mail"
@@ -10,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/segmentio/objconv/json"
 )
 
 type point struct {
@@ -154,12 +155,17 @@ var (
 	}
 )
 
+func testName(v interface{}) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
 func TestLoadEnv(t *testing.T) {
 	for _, test := range loadTests {
-		t.Run(fmt.Sprint(test.val), func(t *testing.T) {
+		t.Run(testName(test.val), func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
-			v3 := reflect.New(makeType(v1.Type())).Elem()
+			v3 := makeValue(v1)
 			setValue(v3, v2)
 
 			if err := loadEnv(v3, "test", test.env); err != nil {
@@ -179,10 +185,10 @@ func TestLoadEnv(t *testing.T) {
 
 func TestLoadArgs(t *testing.T) {
 	for _, test := range loadTests {
-		t.Run(fmt.Sprint(test.val), func(t *testing.T) {
+		t.Run(testName(test.val), func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
-			v3 := reflect.New(makeType(v1.Type())).Elem()
+			v3 := makeValue(v1)
 			setValue(v3, v2)
 
 			if _, err := loadArgs(v3, "test", "", test.args); err != nil {
@@ -202,10 +208,10 @@ func TestLoadArgs(t *testing.T) {
 
 func TestLoadFile(t *testing.T) {
 	for _, test := range loadTests {
-		t.Run(fmt.Sprint(test.val), func(t *testing.T) {
+		t.Run(testName(test.val), func(t *testing.T) {
 			v1 := reflect.ValueOf(test.val)
 			v2 := reflect.New(v1.Type()).Elem()
-			v3 := reflect.New(makeType(v1.Type())).Elem()
+			v3 := makeValue(v1)
 			setValue(v3, v2)
 
 			readFile := func(file string) (b []byte, err error) {
@@ -313,4 +319,31 @@ func parseURL(s string) url.URL {
 func parseEmail(s string) mail.Address {
 	a, _ := mail.ParseAddress(s)
 	return *a
+}
+
+func TestMakeEnvVars(t *testing.T) {
+	envList := []string{
+		"A=123",
+		"B=456",
+		"C=789",
+		"Hello=World",
+		"Answer=42",
+		"Key=",
+		"Key=Value",
+		"Other",
+	}
+
+	envVars := makeEnvVars(envList)
+
+	if !reflect.DeepEqual(envVars, map[string]string{
+		"A":      "123",
+		"B":      "456",
+		"C":      "789",
+		"Hello":  "World",
+		"Answer": "42",
+		"Key":    "Value",
+		"Other":  "",
+	}) {
+		t.Error(envVars)
+	}
 }

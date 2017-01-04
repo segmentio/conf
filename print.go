@@ -51,7 +51,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	set := newFlagSet(makeConfValue(v), ld.Program)
+	set := newFlagSet(makeValue(v), ld.Program)
 
 	if len(ld.FileFlag) != 0 {
 		addFileFlag(set, nil, ld.FileFlag)
@@ -73,7 +73,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 
 		switch {
 		case !v.IsBoolFlag():
-			fmt.Fprintf(w, " %s\n", col.types(prettyType(v.v.Type())))
+			fmt.Fprintf(w, " %s\n", col.types(prettyValueType(v.v)))
 		case len(f.Name) >= 4: // put help message inline for boolean flags
 			fmt.Fprint(w, "\n")
 		}
@@ -82,7 +82,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			h = append(h, s)
 		}
 
-		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isEmptyValue(v.v) && v.v.Kind() != reflect.Struct {
+		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isEmptyValue(v.v) {
 			h = append(h, col.defvals("(default "+s+")"))
 		}
 
@@ -97,41 +97,48 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	})
 }
 
+func prettyValueType(v reflect.Value) string {
+	if x, ok := v.Interface().(specialValue); ok {
+		return prettyValueType(x.v)
+	}
+	return prettyType(v.Type())
+}
+
 func prettyType(t reflect.Type) string {
 	if t == nil {
 		return "unknown"
 	}
 
-	switch t {
-	case timeDurationType, confDurationType:
-		return "duration"
+	switch {
+	case t.Implements(objconvValueDecoderInterface):
+		return "value"
+	case t.Implements(textUnmarshalerInterface):
+		return "string"
+	}
 
+	switch t {
+	case timeDurationType:
+		return "duration"
 	case timeTimeType:
 		return "time"
-
-	case netTCPAddrType, netUDPAddrType, confNetAddrType:
+	case netTCPAddrType, netUDPAddrType:
 		return "address"
-
-	case urlURLType, confURLType:
+	case urlURLType:
 		return "url"
-
-	case mailAddressType, confEmailType:
+	case mailAddressType:
 		return "email"
 	}
 
 	switch t.Kind() {
 	case reflect.Struct, reflect.Map:
 		return "object"
-
 	case reflect.Slice, reflect.Array:
 		if t.Elem().Kind() == reflect.Uint8 {
 			return "base64"
 		}
 		return "list"
-
 	case reflect.Ptr:
 		return prettyType(t.Elem())
-
 	default:
 		return t.String()
 	}
