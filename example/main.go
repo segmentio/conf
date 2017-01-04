@@ -14,7 +14,7 @@
 // Passing configuration via a configuration file:
 //
 //	$ go run ./example/main.go -config-file ./example/config.yml
-//	[main] hello! (from the config file)
+//	[main] hello ${USER}! (from the config file)
 //
 package main
 

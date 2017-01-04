@@ -1,2 +1,2 @@
 ---
-msg: 'hello! (from the config file)'
+msg: 'hello {{ .USER }}! (from the config file)'
