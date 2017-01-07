@@ -34,17 +34,20 @@ import (
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
-	var err error
-	var name = filepath.Base(os.Args[0])
 	var env = os.Environ()
-	var ld = Loader{
+	return LoadWith(cfg, Loader{
 		Args:     os.Args[1:],
 		Env:      env,
 		Vars:     makeEnvVars(env),
-		Program:  name,
+		Program:  filepath.Base(os.Args[0]),
 		FileFlag: "config-file",
-	}
+	})
+}
 
+// LoadWith behaves like Load but uses ld as a loader to parse the program
+// configuration.
+func LoadWith(cfg interface{}, ld Loader) (args []string) {
+	var err error
 	switch args, err = ld.Load(cfg); err {
 	case nil:
 	case flag.ErrHelp:
@@ -55,7 +58,6 @@ func Load(cfg interface{}) (args []string) {
 		ld.PrintHelp(cfg)
 		os.Exit(1)
 	}
-
 	return
 }
 
