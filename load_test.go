@@ -56,6 +56,13 @@ var (
 		},
 
 		{
+			val:  struct{ A string }{"42"}, // convert digit sequence to string
+			file: `A: '42'`,
+			args: []string{"-A", "42"},
+			env:  []string{"TEST_A=42"},
+		},
+
+		{
 			val:  struct{ S string }{"Hello World!"},
 			file: `S: Hello World!`,
 			args: []string{"-S", "Hello World!"},
@@ -81,6 +88,20 @@ var (
 			file: `L: [1, 2, 3]`,
 			args: []string{"-L", "[1,2,3]"},
 			env:  []string{"TEST_L=[1, 2, 3]"},
+		},
+
+		{
+			val:  struct{ L []string }{[]string{"A", "B", "C"}},
+			file: `L: [A,B,C]`,
+			args: []string{"-L", "[A,B,C]"},
+			env:  []string{"TEST_L=[A,B,C]"},
+		},
+
+		{
+			val:  struct{ L []string }{[]string{"A", "B", "C"}},
+			file: `L: [A,B,C]`,
+			args: []string{"-L", `["A","B","C"]`},
+			env:  []string{`TEST_L=["A","B","C"]`},
 		},
 
 		{
