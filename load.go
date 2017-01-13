@@ -54,8 +54,8 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 		ld.PrintHelp(cfg)
 		os.Exit(0)
 	default:
-		ld.PrintError(err)
 		ld.PrintHelp(cfg)
+		ld.PrintError(err)
 		os.Exit(1)
 	}
 	return
