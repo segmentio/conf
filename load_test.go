@@ -91,6 +91,13 @@ var (
 		},
 
 		{
+			val:  struct{ L []string }{[]string{"A", "42"}},
+			file: `L: [A, 42]`,
+			args: []string{"-L", "[A, 42]"},
+			env:  []string{"TEST_L=[A, 42]"},
+		},
+
+		{
 			val:  struct{ L []string }{[]string{"A", "B", "C"}},
 			file: `L: [A,B,C]`,
 			args: []string{"-L", "[A,B,C]"},
@@ -149,8 +156,8 @@ var (
 		{
 			val:  struct{ A net.TCPAddr }{net.TCPAddr{IP: net.ParseIP("::1"), Port: 80, Zone: "11"}},
 			file: `A: '[::1%11]:80'`,
-			args: []string{"-A", "'[::1%11]:80'"},
-			env:  []string{"TEST_A='[::1%11]:80'"},
+			args: []string{"-A", "[::1%11]:80"},
+			env:  []string{"TEST_A=[::1%11]:80"},
 		},
 
 		{
