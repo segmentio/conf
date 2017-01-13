@@ -127,7 +127,7 @@ func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, va
 		var a = append([]string{}, args...)
 		var b []byte
 		var f string
-		var v = reflect.New(cfg.Type()).Elem() // discard values from the arguments
+		var v = deepCopyValue(cfg)
 
 		set := newFlagSet(v, name)
 		addFileFlag(set, &f, fileFlag)

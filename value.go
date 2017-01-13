@@ -31,6 +31,47 @@ func makeValue(v1 reflect.Value) reflect.Value {
 	return v2
 }
 
+func deepCopyValue(v reflect.Value) reflect.Value {
+	if v.Type() == specialValueType {
+		return reflect.ValueOf(specialValue{deepCopyValue(v.Interface().(specialValue).v)})
+	}
+
+	switch v.Kind() {
+	case reflect.Struct:
+		c := reflect.New(v.Type()).Elem()
+		c.Set(v)
+		for i, n := 0, v.NumField(); i != n; i++ {
+			if f := c.Field(i); f.CanSet() {
+				f.Set(deepCopyValue(v.Field(i)))
+			}
+		}
+		return c
+
+	case reflect.Map:
+		c := reflect.MakeMap(v.Type())
+		for _, k := range v.MapKeys() {
+			c.SetMapIndex(deepCopyValue(k), deepCopyValue(v.MapIndex(k)))
+		}
+		return c
+
+	case reflect.Slice:
+		c := reflect.MakeSlice(v.Type(), v.Len(), v.Len())
+		for i, n := 0, v.Len(); i != n; i++ {
+			c.Index(i).Set(deepCopyValue(v.Index(i)))
+		}
+		return c
+
+	case reflect.Ptr:
+		c := reflect.New(v.Type().Elem())
+		if !v.IsNil() {
+			c.Elem().Set(deepCopyValue(v.Elem()))
+		}
+		return c
+	}
+
+	return copyValue(v)
+}
+
 // copyValue creates a shallow copy of the value referenced by v.
 func copyValue(v reflect.Value) reflect.Value {
 	c := reflect.New(v.Type()).Elem()
@@ -173,8 +214,16 @@ func (f flagValue) String() string {
 	return f.s
 }
 
-func (f flagValue) Set(s string) error {
-	return yaml.Unmarshal([]byte(s), f.v.Addr().Interface())
+func (f flagValue) Set(s string) (err error) {
+	ptr := f.v.Addr().Interface()
+
+	if err = yaml.Unmarshal([]byte(s), ptr); err != nil {
+		b, _ := json.Marshal(s)
+		if json.Unmarshal(b, ptr) == nil {
+			err = nil
+		}
+	}
+	return
 }
 
 func (f flagValue) IsBoolFlag() bool {
