@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/segmentio/objconv/yaml"
 )
 
 type point struct {

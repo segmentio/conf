@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/segmentio/objconv/yaml"
 )
 
 // Load the program's configuration into cfg, and returns the list of leftover
