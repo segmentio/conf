@@ -69,6 +69,7 @@ type Loader struct {
 	Vars     interface{} // template variables, may be a struct, map, etc..
 	Program  string      // name of the program
 	FileFlag string      // command line option for the configuration file
+	Usage    string      // the usage description.
 }
 
 // Load uses the loader ld to load the program configuration into cfg, and
