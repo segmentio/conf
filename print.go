@@ -58,7 +58,12 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	}
 
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
-	fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Program)
+
+	if len(ld.Usage) != 0 {
+		fmt.Fprintf(w, "  %s %s\n\n", ld.Program, ld.Usage)
+	} else {
+		fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Program)
+	}
 
 	fmt.Fprintf(w, "%s\n", col.titles("Options:"))
 
