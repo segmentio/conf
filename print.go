@@ -62,14 +62,27 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	// package. The main difference is in the type names which are set to
 	// values returned by prettyType.
 	set.VisitAll(func(f *flag.Flag) {
-		v := f.Value.(flagValue)
-		h := []string{}
+		var t string
+		var h []string
+		var empty bool
+		var boolean bool
+
+		switch v := f.Value.(type) {
+		case flagValue:
+			t = prettyValueType(v.v)
+			empty = isEmptyValue(v.v)
+			boolean = v.IsBoolFlag()
+		case FlagSource:
+			t = "source"
+		default:
+			t = "value"
+		}
 
 		fmt.Fprintf(w, "  %s", col.keys("-"+f.Name))
 
 		switch {
-		case !v.IsBoolFlag():
-			fmt.Fprintf(w, " %s\n", col.types(prettyValueType(v.v)))
+		case !boolean:
+			fmt.Fprintf(w, " %s\n", col.types(t))
 		case len(f.Name) >= 4: // put help message inline for boolean flags
 			fmt.Fprint(w, "\n")
 		}
@@ -78,12 +91,12 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			h = append(h, s)
 		}
 
-		if s := f.DefValue; len(s) != 0 && !v.IsBoolFlag() && !isEmptyValue(v.v) {
+		if s := f.DefValue; len(s) != 0 && !empty && !boolean {
 			h = append(h, col.defvals("(default "+s+")"))
 		}
 
 		if len(h) != 0 {
-			if !v.IsBoolFlag() || len(f.Name) >= 4 {
+			if !boolean || len(f.Name) >= 4 {
 				fmt.Fprint(w, "    ")
 			}
 			fmt.Fprintf(w, "\t%s\n", strings.Join(h, " "))
