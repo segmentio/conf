@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/segmentio/objconv/json"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type point struct {
@@ -183,91 +183,33 @@ var (
 	}
 )
 
-func testName(v interface{}) string {
-	b, _ := json.Marshal(v)
-	return string(b)
-}
-
-/*
-func TestLoadEnv(t *testing.T) {
+func TestLoad(t *testing.T) {
 	for _, test := range loadTests {
-		t.Run(testName(test.val), func(t *testing.T) {
-			v1 := reflect.ValueOf(test.val)
-			v2 := reflect.New(v1.Type()).Elem()
-			v3 := makeValue(v1)
-			setValue(v3, v2)
+		t.Run("", func(t *testing.T) {
+			ld := Loader{
+				Name: "test",
+				Args: test.args,
+				Sources: []Source{
+					SourceFunc(func(dst interface{}) (err error) { return yaml.Unmarshal([]byte(test.file), dst) }),
+					NewEnvSource("test", test.env...),
+				},
+			}
 
-			if err := loadEnv(v3, "test", test.env); err != nil {
+			val := reflect.New(reflect.TypeOf(test.val)).Elem()
+
+			if _, err := ld.Load(val.Addr().Interface()); err != nil {
 				t.Error(err)
-			}
-
-			setValue(v2, v3)
-			x1 := v1.Interface()
-			x2 := v2.Interface()
-
-			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
-			}
-		})
-	}
-}
-
-func TestLoadArgs(t *testing.T) {
-	for _, test := range loadTests {
-		t.Run(testName(test.val), func(t *testing.T) {
-			v1 := reflect.ValueOf(test.val)
-			v2 := reflect.New(v1.Type()).Elem()
-			v3 := makeValue(v1)
-			setValue(v3, v2)
-
-			if _, err := loadArgs(v3, "test", "", test.args); err != nil {
-				t.Error(err)
-			}
-
-			setValue(v2, v3)
-			x1 := v1.Interface()
-			x2 := v2.Interface()
-
-			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
-			}
-		})
-	}
-}
-
-func TestLoadFile(t *testing.T) {
-	for _, test := range loadTests {
-		t.Run(testName(test.val), func(t *testing.T) {
-			v1 := reflect.ValueOf(test.val)
-			v2 := reflect.New(v1.Type()).Elem()
-			v3 := makeValue(v1)
-			setValue(v3, v2)
-
-			readFile := func(file string) (b []byte, err error) {
-				if file != "test.yml" {
-					t.Error(file)
-				}
-				b = []byte(test.file)
 				return
 			}
 
-			if err := loadFile(v3, "test", "config-file", []string{"-config-file", "test.yml"}, nil, readFile); err != nil {
-				t.Error(err)
-			}
-
-			setValue(v2, v3)
-			x1 := v1.Interface()
-			x2 := v2.Interface()
-
-			if !reflect.DeepEqual(x1, x2) {
-				t.Errorf("\n<<< %#v\n>>> %#v", x1, x2)
+			if !reflect.DeepEqual(test.val, val.Interface()) {
+				t.Errorf("bad value:\n<<< %#v\n>>> %#v", test.val, val.Interface())
 			}
 		})
 	}
 }
-*/
 
-func TestLoad(t *testing.T) {
+func TestDefaultLoader(t *testing.T) {
 	const configFile = "/tmp/conf-test.yml"
 	ioutil.WriteFile(configFile, []byte(`---
 points:
