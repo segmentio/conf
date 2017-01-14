@@ -51,14 +51,10 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	set := newFlagSet(makeValue(v), ld.Program)
-
-	if len(ld.FileFlag) != 0 {
-		addFileFlag(set, nil, ld.FileFlag)
-	}
+	set := newFlagSet(makeValue(v), ld.Name, ld.Sources...)
 
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
-	fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Program)
+	fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Name)
 
 	fmt.Fprintf(w, "%s\n", col.titles("Options:"))
 

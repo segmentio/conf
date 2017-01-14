@@ -188,6 +188,7 @@ func testName(v interface{}) string {
 	return string(b)
 }
 
+/*
 func TestLoadEnv(t *testing.T) {
 	for _, test := range loadTests {
 		t.Run(testName(test.val), func(t *testing.T) {
@@ -264,8 +265,9 @@ func TestLoadFile(t *testing.T) {
 		})
 	}
 }
+*/
 
-func TestLoader(t *testing.T) {
+func TestLoad(t *testing.T) {
 	const configFile = "/tmp/conf-test.yml"
 	ioutil.WriteFile(configFile, []byte(`---
 points:
@@ -275,38 +277,25 @@ points:
 `), 0644)
 	defer os.Remove(configFile)
 
-	loaders := []Loader{
+	tests := []struct {
+		args []string
+		env  []string
+	}{
 		{
-			Program: "test",
-			Args:    []string{"-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
-			Env:     []string{},
+			args: []string{"test", "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
+			env:  []string{},
 		},
-
 		{
-			Program: "test",
-			Args:    []string{"A", "B", "C"},
-			Env:     []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]"},
+			args: []string{"test", "A", "B", "C"},
+			env:  []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]"},
 		},
-
 		{
-			Program:  "test",
-			Args:     []string{"-f", configFile, "A", "B", "C"},
-			Env:      []string{},
-			FileFlag: "f",
-			Vars: struct {
-				X int
-				Y int
-			}{21, 42}},
-
+			args: []string{"test", "-config-file", configFile, "A", "B", "C"},
+			env:  []string{"X=21", "Y=42"},
+		},
 		{
-			Program:  "test",
-			Args:     []string{"-f", configFile, "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
-			Env:      []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]"},
-			FileFlag: "f",
-			Vars: struct {
-				X int
-				Y int
-			}{21, 42},
+			args: []string{"test", "-config-file", configFile, "-points", `[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]`, "A", "B", "C"},
+			env:  []string{"TEST_POINTS=[{'x':0,'y':0},{'x':1,'y':2},{'x':21,'y':42}]", "X=3", "Y=4"},
 		},
 	}
 
@@ -315,14 +304,25 @@ points:
 		Y int `conf:"y"`
 	}
 
-	type config struct {
-		Points []point `conf:"points"`
+	type extra struct {
+		Dummy [3]map[string]string
 	}
 
-	for _, ld := range loaders {
+	type config struct {
+		// should not impact loading configuration
+		unexported bool
+		Ignored    string `conf:"-"`
+
+		// these fields only are getting configured
+		Points []point `conf:"points"`
+		Extra  *extra
+		Time   time.Time
+	}
+
+	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
 			var cfg config
-			args, err := ld.Load(&cfg)
+			args, err := defaultLoader(test.args, test.env).Load(&cfg)
 
 			if err != nil {
 				t.Error(err)
@@ -332,8 +332,14 @@ points:
 				t.Error("bad args:", args)
 			}
 
-			if !reflect.DeepEqual(cfg, config{[]point{{0, 0}, {1, 2}, {21, 42}}}) {
-				t.Error("bad config:", cfg)
+			if !reflect.DeepEqual(cfg, config{Points: []point{{0, 0}, {1, 2}, {21, 42}}, Extra: &extra{
+				Dummy: [3]map[string]string{
+					map[string]string{},
+					map[string]string{},
+					map[string]string{},
+				},
+			}}) {
+				t.Errorf("bad config: %#v", cfg)
 			}
 		})
 	}
