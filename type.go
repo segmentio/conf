@@ -64,10 +64,12 @@ func specialType(t reflect.Type) bool {
 
 func makeStructType(t reflect.Type) reflect.Type {
 	n := t.NumField()
-	f := make([]reflect.StructField, n)
+	f := make([]reflect.StructField, 0, n)
 
 	for i := 0; i != n; i++ {
-		f[i] = makeStructField(t.Field(i))
+		if ft := t.Field(i); isExported(ft) {
+			f = append(f, makeStructField(ft))
+		}
 	}
 
 	return reflect.StructOf(f)
@@ -81,4 +83,8 @@ func makeStructField(f reflect.StructField) reflect.StructField {
 		Tag:       reflect.StructTag(strings.Replace(string(f.Tag), "conf:", "objconv:", -1)),
 		Anonymous: f.Anonymous,
 	}
+}
+
+func isExported(f reflect.StructField) bool {
+	return len(f.PkgPath) == 0
 }

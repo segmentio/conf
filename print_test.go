@@ -76,9 +76,8 @@ func TestPrintError(t *testing.T) {
 
 func TestPrintHelp(t *testing.T) {
 	ld := Loader{
-		Args:     []string{"-A=1", "-B=2", "-C=3"},
-		Program:  "test",
-		FileFlag: "F",
+		Name: "test",
+		Args: []string{"-A=1", "-B=2", "-C=3"},
 	}
 	b := &bytes.Buffer{}
 
@@ -103,9 +102,6 @@ func TestPrintHelp(t *testing.T) {
 		"  -C int\n" +
 		"\n" +
 		"  -D\tSet D\n" +
-		"\n" +
-		"  -F string\n" +
-		"    \tPath to the configuration file\n" +
 		"\n" +
 		"  -T duration\n" +
 		"    \t(default 1s)\n" +
