@@ -54,7 +54,11 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	set := newFlagSet(makeValue(v), ld.Name, ld.Sources...)
 
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
-	fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Name)
+	if len(ld.Usage) == 0 {
+		fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Name)
+	} else {
+		fmt.Fprintf(w, "  %s %s\n\n", ld.Name, ld.Usage)
+	}
 
 	fmt.Fprintf(w, "%s\n", col.titles("Options:"))
 
