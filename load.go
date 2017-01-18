@@ -55,6 +55,7 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 // configuration.
 type Loader struct {
 	Name    string   // program name
+	Usage   string   // program usage
 	Args    []string // list of arguments
 	Sources []Source // list of sources to load configuration from.
 }
