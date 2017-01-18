@@ -1,17 +1,14 @@
 package conf
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
-	"github.com/segmentio/objconv"
 	"github.com/segmentio/objconv/yaml"
 )
 
@@ -34,14 +31,7 @@ import (
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
-	var env = os.Environ()
-	return LoadWith(cfg, Loader{
-		Args:     os.Args[1:],
-		Env:      env,
-		Vars:     makeEnvVars(env),
-		Program:  filepath.Base(os.Args[0]),
-		FileFlag: "config-file",
-	})
+	return LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
 }
 
 // LoadWith behaves like Load but uses ld as a loader to parse the program
@@ -64,11 +54,9 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 // A Loader can be used to provide a costomized configurable for loading a
 // configuration.
 type Loader struct {
-	Args     []string    // list of arguments
-	Env      []string    // list of environment variables ["KEY=VALUE", ...]
-	Vars     interface{} // template variables, may be a struct, map, etc..
-	Program  string      // name of the program
-	FileFlag string      // command line option for the configuration file
+	Name    string   // program name
+	Args    []string // list of arguments
+	Sources []Source // list of sources to load configuration from.
 }
 
 // Load uses the loader ld to load the program configuration into cfg, and
@@ -109,168 +97,43 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 }
 
 func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
-	if err = loadFile(cfg, ld.Program, ld.FileFlag, ld.Args, ld.Vars, ioutil.ReadFile); err != nil {
-		args = nil
+	set := newFlagSet(cfg, ld.Name, ld.Sources...)
+
+	// Parse the arguments a first time so the sources that implement the
+	// FlagSource interface get their values loaded.
+	if err = set.Parse(ld.Args); err != nil {
 		return
 	}
 
-	if err = loadEnv(cfg, ld.Program, ld.Env); err != nil {
-		args = nil
+	// Load the configuration from the sources that have been configured on the
+	// loader.
+	// Order is important here because the values will get overwritten by each
+	// source that loads the configuration.
+	for _, source := range ld.Sources {
+		if err = source.Load(cfg.Addr().Interface()); err != nil {
+			return
+		}
+	}
+
+	// Parse the arguments a second time to overwrite values loaded by sources
+	// which were also passed to the program arguments.
+	if err = set.Parse(ld.Args); err != nil {
 		return
 	}
 
-	return loadArgs(cfg, ld.Program, ld.FileFlag, ld.Args)
-}
-
-func loadFile(cfg reflect.Value, name string, fileFlag string, args []string, vars interface{}, readFile func(string) ([]byte, error)) (err error) {
-	if len(fileFlag) != 0 {
-		var a = append([]string{}, args...)
-		var b []byte
-		var f string
-		var v = deepCopyValue(cfg)
-
-		set := newFlagSet(v, name)
-		addFileFlag(set, &f, fileFlag)
-
-		if err = set.Parse(a); err != nil {
-			return
-		}
-
-		if len(f) == 0 {
-			return
-		}
-
-		if b, err = readFile(f); err != nil {
-			return
-		}
-
-		tpl := template.New("config")
-		buf := &bytes.Buffer{}
-		buf.Grow(65536)
-
-		if _, err = tpl.Parse(string(b)); err != nil {
-			return
-		}
-
-		if err = tpl.Execute(buf, vars); err != nil {
-			return
-		}
-
-		if err = yaml.Unmarshal(buf.Bytes(), cfg.Addr().Interface()); err != nil {
-			return
-		}
-	}
+	args = set.Args()
 	return
 }
 
-func loadEnv(cfg reflect.Value, name string, env []string) (err error) {
-	if len(env) != 0 {
-		type entry struct {
-			key string
-			val flagValue
-		}
-		var entries []entry
-
-		scanFields(cfg, name, "_", func(key string, help string, val reflect.Value) {
-			entries = append(entries, entry{
-				key: snakecaseUpper(key) + "=",
-				val: makeFlagValue(val),
-			})
-		})
-
-		for _, e := range entries {
-			for _, kv := range env {
-				if strings.HasPrefix(kv, e.key) {
-					if err = e.val.Set(kv[len(e.key):]); err != nil {
-						return
-					}
-					break
-				}
-			}
-		}
-	}
-	return
-}
-
-func loadArgs(cfg reflect.Value, name string, fileFlag string, args []string) (leftover []string, err error) {
-	if len(args) != 0 {
-		args = append([]string{}, args...)
-		set := newFlagSet(cfg, name)
-
-		if len(fileFlag) != 0 {
-			addFileFlag(set, nil, fileFlag)
-		}
-
-		if err = set.Parse(args); err != nil {
-			return
-		}
-
-		leftover = set.Args()
-	}
-	return
-}
-
-func newFlagSet(cfg reflect.Value, name string) *flag.FlagSet {
-	set := flag.NewFlagSet(name, flag.ContinueOnError)
-	set.SetOutput(ioutil.Discard)
-
-	scanFields(cfg, "", ".", func(key string, help string, val reflect.Value) {
-		set.Var(makeFlagValue(val), key, help)
-	})
-
-	return set
-}
-
-func addFileFlag(set *flag.FlagSet, f *string, arg string) {
-	if f == nil {
-		f = new(string)
-	}
-	set.Var(makeFlagValue(reflect.ValueOf(f).Elem()), arg, "Path to the configuration file")
-}
-
-func scanFields(v reflect.Value, base string, sep string, do func(string, string, reflect.Value)) {
-	t := v.Type()
-
-	for i, n := 0, v.NumField(); i != n; i++ {
-		ft := t.Field(i)
-		fv := v.Field(i)
-
-		if len(ft.PkgPath) != 0 {
-			continue // unexported field
-		}
-
-		name := ft.Name
-		help := ft.Tag.Get("help")
-		tag, _, _ := objconv.ParseTag(ft.Tag.Get("objconv"))
-
-		if tag == "-" {
-			continue
-		}
-
-		if len(tag) != 0 {
-			name = tag
-		}
-
-		if len(base) != 0 {
-			name = base + sep + name
-		}
-
-		// Dereference all pointers and create objects on the ones that are nil.
-		for fv.Kind() == reflect.Ptr {
-			if fv.IsNil() {
-				fv.Set(reflect.New(ft.Type.Elem()))
-			}
-			fv = fv.Elem()
-		}
-
-		// For all fields the delegate is called.
-		do(name, help, fv)
-
-		// Inner structs are flattened to allow composition of configuration
-		// objects.
-		if fv.Kind() == reflect.Struct && !specialType(ft.Type) {
-			scanFields(fv, name, sep, do)
-		}
+func defaultLoader(args []string, env []string) Loader {
+	var name = filepath.Base(args[0])
+	return Loader{
+		Name: name,
+		Args: args[1:],
+		Sources: []Source{
+			NewFileSource("config-file", makeEnvVars(env), ioutil.ReadFile, yaml.Unmarshal),
+			NewEnvSource(name, env...),
+		},
 	}
 }
 

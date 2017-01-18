@@ -19,57 +19,9 @@ import (
 // for loading configs.
 func makeValue(v1 reflect.Value) reflect.Value {
 	var t2 = makeType(v1.Type())
-	var v2 reflect.Value
-
-	if t2 == specialValueType {
-		v2 = reflect.ValueOf(specialValue{v1})
-	} else {
-		v2 = reflect.New(t2).Elem()
-	}
-
+	var v2 = reflect.New(t2).Elem()
 	setValue(v2, v1)
 	return v2
-}
-
-func deepCopyValue(v reflect.Value) reflect.Value {
-	if v.Type() == specialValueType {
-		return reflect.ValueOf(specialValue{deepCopyValue(v.Interface().(specialValue).v)})
-	}
-
-	switch v.Kind() {
-	case reflect.Struct:
-		c := reflect.New(v.Type()).Elem()
-		c.Set(v)
-		for i, n := 0, v.NumField(); i != n; i++ {
-			if f := c.Field(i); f.CanSet() {
-				f.Set(deepCopyValue(v.Field(i)))
-			}
-		}
-		return c
-
-	case reflect.Map:
-		c := reflect.MakeMap(v.Type())
-		for _, k := range v.MapKeys() {
-			c.SetMapIndex(deepCopyValue(k), deepCopyValue(v.MapIndex(k)))
-		}
-		return c
-
-	case reflect.Slice:
-		c := reflect.MakeSlice(v.Type(), v.Len(), v.Len())
-		for i, n := 0, v.Len(); i != n; i++ {
-			c.Index(i).Set(deepCopyValue(v.Index(i)))
-		}
-		return c
-
-	case reflect.Ptr:
-		c := reflect.New(v.Type().Elem())
-		if !v.IsNil() {
-			c.Elem().Set(deepCopyValue(v.Elem()))
-		}
-		return c
-	}
-
-	return copyValue(v)
 }
 
 // copyValue creates a shallow copy of the value referenced by v.
@@ -111,12 +63,31 @@ func setValue(v1 reflect.Value, v2 reflect.Value) {
 }
 
 func setStructValue(v1 reflect.Value, v2 reflect.Value) {
+	n1 := v1.NumField()
 	n2 := v2.NumField()
 
-	for i := 0; i != n2; i++ {
-		f1 := v1.Field(i)
-		f2 := v2.Field(i)
-		setValue(f1, f2)
+	i1 := 0
+	i2 := 0
+
+	t1 := v1.Type()
+	t2 := v2.Type()
+
+	for i1 != n1 && i2 != n2 {
+		f1 := v1.Field(i1)
+		f2 := v2.Field(i2)
+
+		x1 := isExported(t1.Field(i1))
+		x2 := isExported(t2.Field(i2))
+
+		if x1 && x2 {
+			setValue(f1, f2)
+			i1++
+			i2++
+		} else if x1 {
+			i2++
+		} else {
+			i1++
+		}
 	}
 }
 
