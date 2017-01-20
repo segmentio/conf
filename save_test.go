@@ -27,6 +27,7 @@ type CfgSave struct {
 	StructPtr      *CfgSub                      `conf:"struct-ptr"             help:"A ptr to CfgSub"`
 	Bool           bool                         `conf:"bool"                   help:"A boolean"`
 	MutilineString string                       `conf:"multi-line-string"      help:"A string with multiple lines"`
+	SpecialString  string                       `conf:"special-string"         help:"A string with special char"`
 }
 
 type CfgSub struct {
@@ -123,6 +124,7 @@ for multi line test...
 			Age:  2,
 		},
 		MutilineString: mline,
+		SpecialString:  "> hello ' ', > world",
 	}
 
 	Save(w, cfg)
@@ -142,5 +144,4 @@ for multi line test...
 		t.Fatal(err)
 	}
 	t.Logf("%+v", newCfg)
-
 }

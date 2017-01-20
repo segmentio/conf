@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/segmentio/objconv/json"
 )
 
 // SaveTo writes a config struct into the file name in YAML format.
@@ -83,6 +85,9 @@ func save(w io.Writer, v reflect.Value, indent int) {
 	case reflect.Ptr:
 		save(w, v.Elem(), indent)
 
+	case reflect.Bool:
+		fmt.Fprintln(w, v.Interface())
+
 	default:
 		saveString(w, v, indent)
 	}
@@ -108,6 +113,37 @@ func saveSlice(w io.Writer, v reflect.Value, indent int) {
 
 func saveString(w io.Writer, v reflect.Value, indent int) {
 	str := fmt.Sprint(v.Interface())
+
+	if s := strings.ToLower(strings.TrimSpace(str)); strings.HasPrefix(s, `"`) ||
+		strings.HasPrefix(s, "'") ||
+		strings.HasPrefix(s, "`") ||
+		strings.HasPrefix(s, ">") ||
+		strings.HasPrefix(s, "|") ||
+		strings.HasPrefix(s, "?") ||
+		strings.HasPrefix(s, "!") ||
+		strings.HasPrefix(s, "&") ||
+		strings.HasPrefix(s, "@") ||
+		strings.HasPrefix(s, "%") ||
+		strings.HasPrefix(s, "*") ||
+		strings.HasPrefix(s, "-") ||
+		strings.HasPrefix(s, "[") ||
+		strings.HasPrefix(s, "]") ||
+		strings.HasPrefix(s, "{") ||
+		strings.HasPrefix(s, "}") ||
+		strings.HasPrefix(s, ":") ||
+		s == "true" ||
+		s == "false" ||
+		s == "null" {
+
+		d, err := json.Marshal(s)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("%s\n", d)
+		fmt.Fprintf(w, "%s\n", d)
+		return
+	}
 
 	s := strings.Split(str, "\n")
 	if len(s) == 1 {
