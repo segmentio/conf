@@ -6,10 +6,11 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // SaveTo writes a config struct into the file name in YAML format.
-// name is created if not exists.
+// name is created if it doesn't exist.
 func SaveTo(name string, cfg interface{}) error {
 	f, err := os.Create(name)
 	if err != nil {
@@ -42,15 +43,6 @@ func saveStruct(w io.Writer, v reflect.Value, indent int) {
 			continue
 		}
 
-		confArgs := strings.Split(conf, ",")
-		if len(confArgs) >= 2 && confArgs[1] == "omitempty" {
-			fi := fv.Interface()
-			zi := reflect.Zero(f.Type).Interface()
-			if reflect.DeepEqual(fi, zi) {
-				continue
-			}
-		}
-
 		if help := f.Tag.Get("help"); len(help) != 0 {
 			fmt.Fprintln(w)
 			saveIndent(w, indent)
@@ -58,8 +50,8 @@ func saveStruct(w io.Writer, v reflect.Value, indent int) {
 		}
 
 		name := f.Name
-		if len(confArgs) > 0 && len(confArgs[0]) != 0 {
-			name = confArgs[0]
+		if len(conf) != 0 {
+			name = conf
 		}
 
 		saveIndent(w, indent)
@@ -69,13 +61,14 @@ func saveStruct(w io.Writer, v reflect.Value, indent int) {
 }
 
 func save(w io.Writer, v reflect.Value, indent int) {
-	if _, ok := v.Type().MethodByName("String"); ok {
-		saveString(w, v, indent)
-		return
-	}
-
 	switch v.Kind() {
 	case reflect.Struct:
+		switch s := v.Interface().(type) {
+		case time.Time:
+			fmt.Fprintln(w, s.Format(time.RFC3339Nano))
+			return
+		}
+
 		fmt.Fprintln(w)
 		saveStruct(w, v, indent+1)
 

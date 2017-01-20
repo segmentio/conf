@@ -2,35 +2,45 @@ package conf
 
 import (
 	"bytes"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/segmentio/objconv/yaml"
 )
 
 type CfgSave struct {
-	String         string                       `conf:"string"                help:"A string"`
-	Int            int                          `conf:"int"                   help:"An int"`
-	OmitString     string                       `conf:"omit-string,omitempty" help:"Omit a string"`
-	OmitInt        int                          `conf:"omit-int,omitempty"    help:"Omit an int"`
-	Ignored        int                          `conf:"-"                     help:"Ignored field"`
-	Date           time.Time                    `conf:"date"                  help:"A date"`
-	SubStruct      CfgSub                       `conf:"sub-struct"            help:"A sub struct"`
-	Map            map[string]string            `conf:"map"                   help:"A map[string]string"`
-	MapStruct      map[int]CfgSub               `conf:"map-struct"            help:"A map[int]CfgSub"`
-	MapMap         map[string]map[string]string `conf:"map-map"               help:"A map[string]map[string]string"`
-	MapSlice       map[string][]int             `conf:"map-slice"             help:"A map[string][]int"`
-	SliceString    []string                     `conf:"slice-string"          help:"A slice of string"`
-	SliceStruct    []CfgSub                     `conf:"slice-struct"          help:"A slice of CfgSub"`
-	SliceMap       []map[string]string          `conf:"slice-map"             help:"A slice of map"`
-	SliceSlice     [][]string                   `conf:"slice-slice"           help:"A slice of slice"`
-	StructPtr      *CfgSub                      `conf:"struct-ptr"            help:"A ptr to CfgSub"`
-	Bool           bool                         `conf:"bool"                  help:"A boolean"`
-	MutilineString string                       `conf:"multi-line-string"     help:"A string with multiple lines"`
+	String         string                       `conf:"string"                 help:"A string"`
+	Int            int                          `conf:"int"                    help:"An int"`
+	OmitString     string                       `conf:"omit-string,omitempty"  help:"Omit a string"`
+	OmitInt        int                          `conf:"omit-int,omitempty"     help:"Omit an int"`
+	Ignored        int                          `conf:"-"                      help:"Ignored field"`
+	Date           time.Time                    `conf:"date"                   help:"A date"`
+	SubStruct      CfgSub                       `conf:"sub-struct"             help:"A sub struct"`
+	Map            map[string]string            `conf:"map"                    help:"A map[string]string"`
+	MapStruct      map[int]CfgSub               `conf:"map-struct"             help:"A map[int]CfgSub"`
+	MapMap         map[string]map[string]string `conf:"map-map"                help:"A map[string]map[string]string"`
+	MapSlice       map[string][]int             `conf:"map-slice"              help:"A map[string][]int"`
+	SliceString    []string                     `conf:"slice-string"           help:"A slice of string"`
+	SliceStruct    []CfgSub                     `conf:"slice-struct"           help:"A slice of CfgSub"`
+	SliceMap       []map[string]string          `conf:"slice-map"              help:"A slice of map"`
+	SliceSlice     [][]string                   `conf:"slice-slice"            help:"A slice of slice"`
+	StructPtr      *CfgSub                      `conf:"struct-ptr"             help:"A ptr to CfgSub"`
+	Bool           bool                         `conf:"bool"                   help:"A boolean"`
+	MutilineString string                       `conf:"multi-line-string"      help:"A string with multiple lines"`
 }
 
 type CfgSub struct {
 	Name string
 	Age  int
+}
+
+type BufferSource struct {
+	buffer *bytes.Buffer
+}
+
+func (src BufferSource) Load(dst interface{}) error {
+	dec := yaml.NewDecoder(src.buffer)
+	return dec.Decode(dst)
 }
 
 func TestSave(t *testing.T) {
@@ -118,5 +128,19 @@ for multi line test...
 	Save(w, cfg)
 	t.Log(w.String())
 
-	ld := defaultLoader(os.Args, os.Environ())
+	ld := Loader{
+		Sources: []Source{
+			BufferSource{
+				buffer: w,
+			},
+		},
+	}
+
+	var newCfg CfgSave
+	_, err := ld.Load(&newCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%+v", newCfg)
+
 }
