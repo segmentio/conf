@@ -92,7 +92,7 @@ func TestPrintHelp(t *testing.T) {
 	}{A: 1, T: time.Second})
 
 	const txt = "Usage:\n" +
-		"  test [-h] [-help] [options...]\n" +
+		"  test [command] [options...]\n" +
 		"\n" +
 		"Commands:\n" +
 		"  run      Run something\n" +
