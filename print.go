@@ -41,7 +41,13 @@ func (ld Loader) fprintError(w io.Writer, err error, col colors) {
 }
 
 func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
-	v := reflect.ValueOf(cfg)
+	var v reflect.Value
+
+	if cfg == nil {
+		v = reflect.ValueOf(&struct{}{})
+	} else {
+		v = reflect.ValueOf(cfg)
+	}
 
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
