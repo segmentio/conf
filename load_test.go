@@ -197,7 +197,7 @@ func TestLoad(t *testing.T) {
 
 			val := reflect.New(reflect.TypeOf(test.val)).Elem()
 
-			if _, err := ld.Load(val.Addr().Interface()); err != nil {
+			if _, _, err := ld.Load(val.Addr().Interface()); err != nil {
 				t.Error(err)
 				return
 			}
@@ -264,7 +264,7 @@ points:
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
 			var cfg config
-			args, err := defaultLoader(test.args, test.env).Load(&cfg)
+			_, args, err := defaultLoader(test.args, test.env).Load(&cfg)
 
 			if err != nil {
 				t.Error(err)
@@ -285,6 +285,59 @@ points:
 			}
 		})
 	}
+}
+
+func TestCommand(t *testing.T) {
+	t.Run("Success", func(t *testing.T) {
+		ld := Loader{
+			Name:     "test",
+			Args:     []string{"run", "A", "B", "C"},
+			Commands: []Command{{"run", ""}, {"version", ""}},
+		}
+
+		config := struct{}{}
+		cmd, args, err := ld.Load(&config)
+
+		if err != nil {
+			t.Error(err)
+		}
+		if cmd != "run" {
+			t.Error("bad command:", cmd)
+		}
+		if !reflect.DeepEqual(args, []string{"A", "B", "C"}) {
+			t.Error("bad arguments:", args)
+		}
+	})
+
+	t.Run("Missing Command", func(t *testing.T) {
+		ld := Loader{
+			Name:     "test",
+			Args:     []string{},
+			Commands: []Command{{"run", ""}, {"version", ""}},
+		}
+
+		config := struct{}{}
+		_, _, err := ld.Load(&config)
+
+		if err == nil || err.Error() != "missing command" {
+			t.Error("bad error:", err)
+		}
+	})
+
+	t.Run("Unknown Command", func(t *testing.T) {
+		ld := Loader{
+			Name:     "test",
+			Args:     []string{"test"},
+			Commands: []Command{{"run", ""}, {"version", ""}},
+		}
+
+		config := struct{}{}
+		_, _, err := ld.Load(&config)
+
+		if err == nil || err.Error() != "unknown command: test" {
+			t.Error("bad error:", err)
+		}
+	})
 }
 
 func parseURL(s string) url.URL {

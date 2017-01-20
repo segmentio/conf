@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,14 +32,18 @@ import (
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
-	return LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
+	_, args = LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
+	return
 }
 
 // LoadWith behaves like Load but uses ld as a loader to parse the program
 // configuration.
-func LoadWith(cfg interface{}, ld Loader) (args []string) {
+//
+// The function panics if cfg is not a pointer to struct, or if it's a nil
+// pointer and no commands were set.
+func LoadWith(cfg interface{}, ld Loader) (cmd string, args []string) {
 	var err error
-	switch args, err = ld.Load(cfg); err {
+	switch cmd, args, err = ld.Load(cfg); err {
 	case nil:
 	case flag.ErrHelp:
 		ld.PrintHelp(cfg)
@@ -51,13 +56,20 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 	return
 }
 
-// A Loader can be used to provide a costomized configurable for loading a
-// configuration.
+// A Command represents a command supported by a configuration loader.
+type Command struct {
+	Name string // name of the command
+	Help string // help message describing what the command does
+}
+
+// A Loader exposes an API for customizing how a configuration is loaded and
+// where it's loaded from.
 type Loader struct {
-	Name    string   // program name
-	Usage   string   // program usage
-	Args    []string // list of arguments
-	Sources []Source // list of sources to load configuration from.
+	Name     string    // program name
+	Usage    string    // program usage
+	Args     []string  // list of arguments
+	Commands []Command // list of commands
+	Sources  []Source  // list of sources to load configuration from.
 }
 
 // Load uses the loader ld to load the program configuration into cfg, and
@@ -70,9 +82,15 @@ type Loader struct {
 // fields or fields with a "conf" tag will be used to load the program
 // configuration.
 // The function panics if cfg is not a pointer to struct, or if it's a nil
-// pointer.
-func (ld Loader) Load(cfg interface{}) (args []string, err error) {
-	v1 := reflect.ValueOf(cfg)
+// pointer and no commands were set.
+func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
+	var v1 reflect.Value
+
+	if cfg == nil {
+		v1 = reflect.ValueOf(&struct{}{})
+	} else {
+		v1 = reflect.ValueOf(cfg)
+	}
 
 	if v1.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
@@ -84,6 +102,31 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 
 	if v1 = v1.Elem(); v1.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
+	}
+
+	if len(ld.Commands) != 0 {
+		if len(ld.Args) == 0 {
+			err = errors.New("missing command")
+			return
+		}
+
+		found := false
+		for _, c := range ld.Commands {
+			if c.Name == ld.Args[0] {
+				found, cmd, ld.Args = true, ld.Args[0], ld.Args[1:]
+				break
+			}
+		}
+
+		if !found {
+			err = errors.New("unknown command: " + ld.Args[0])
+			return
+		}
+
+		if cfg == nil {
+			args = ld.Args
+			return
+		}
 	}
 
 	v2 := makeValue(v1)
