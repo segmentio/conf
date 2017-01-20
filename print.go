@@ -72,7 +72,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		width := 0
 
 		for _, c := range ld.Commands {
-			if n := len(c.Name); n > width {
+			if n := len(col.cmds(c.Name)); n > width {
 				width = n
 			}
 		}
@@ -80,7 +80,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		cmdfmt := fmt.Sprintf("  %%-%ds  %%s\n", width)
 
 		for _, c := range ld.Commands {
-			fmt.Fprintf(w, cmdfmt, c.Name, c.Help)
+			fmt.Fprintf(w, cmdfmt, col.cmds(c.Name), c.Help)
 		}
 
 		fmt.Fprintln(w)
@@ -191,6 +191,7 @@ func prettyType(t reflect.Type) string {
 
 type colors struct {
 	titles  func(string) string
+	cmds    func(string) string
 	keys    func(string) string
 	types   func(string) string
 	defvals func(string) string
@@ -207,6 +208,7 @@ func stderr() colors {
 func colorized() colors {
 	return colors{
 		titles:  bold,
+		cmds:    magenta,
 		keys:    blue,
 		types:   green,
 		defvals: grey,
@@ -217,6 +219,7 @@ func colorized() colors {
 func monochrome() colors {
 	return colors{
 		titles:  normal,
+		cmds:    normal,
 		keys:    normal,
 		types:   normal,
 		defvals: normal,
@@ -238,6 +241,10 @@ func green(s string) string {
 
 func red(s string) string {
 	return "\033[1;31m" + s + "\033[0m"
+}
+
+func magenta(s string) string {
+	return "\033[1;35m" + s + "\033[0m"
 }
 
 func grey(s string) string {
