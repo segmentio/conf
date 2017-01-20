@@ -76,8 +76,9 @@ func TestPrintError(t *testing.T) {
 
 func TestPrintHelp(t *testing.T) {
 	ld := Loader{
-		Name: "test",
-		Args: []string{"-A=1", "-B=2", "-C=3"},
+		Name:     "test",
+		Args:     []string{"-A=1", "-B=2", "-C=3"},
+		Commands: []Command{{"run", "Run something"}, {"version", "Print the version"}},
 	}
 	b := &bytes.Buffer{}
 
@@ -92,6 +93,10 @@ func TestPrintHelp(t *testing.T) {
 
 	const txt = "Usage:\n" +
 		"  test [-h] [-help] [options...]\n" +
+		"\n" +
+		"Commands:\n" +
+		"  run      Run something\n" +
+		"  version  Print the version\n" +
 		"\n" +
 		"Options:\n" +
 		"  -A int\n" +

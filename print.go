@@ -51,8 +51,6 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	set := newFlagSet(makeValue(v), ld.Name, ld.Sources...)
-
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
 	if len(ld.Usage) == 0 {
 		fmt.Fprintf(w, "  %s [-h] [-help] [options...]\n\n", ld.Name)
@@ -60,7 +58,32 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		fmt.Fprintf(w, "  %s %s\n\n", ld.Name, ld.Usage)
 	}
 
-	fmt.Fprintf(w, "%s\n", col.titles("Options:"))
+	if len(ld.Commands) != 0 {
+		fmt.Fprintf(w, "%s\n", col.titles("Commands:"))
+		width := 0
+
+		for _, c := range ld.Commands {
+			if n := len(c.Name); n > width {
+				width = n
+			}
+		}
+
+		cmdfmt := fmt.Sprintf("  %%-%ds  %%s\n", width)
+
+		for _, c := range ld.Commands {
+			fmt.Fprintf(w, cmdfmt, c.Name, c.Help)
+		}
+
+		fmt.Fprintln(w)
+	}
+
+	cnt := 0
+	set := newFlagSet(makeValue(v), ld.Name, ld.Sources...)
+	set.VisitAll(func(f *flag.Flag) { cnt++ })
+
+	if cnt != 0 {
+		fmt.Fprintf(w, "%s\n", col.titles("Options:"))
+	}
 
 	// Outputs the flags following the same format than the standard flag
 	// package. The main difference is in the type names which are set to

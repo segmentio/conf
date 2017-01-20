@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -38,7 +39,7 @@ func Load(cfg interface{}) (args []string) {
 // configuration.
 func LoadWith(cfg interface{}, ld Loader) (args []string) {
 	var err error
-	switch args, err = ld.Load(cfg); err {
+	switch _, args, err = ld.Load(cfg); err {
 	case nil:
 	case flag.ErrHelp:
 		ld.PrintHelp(cfg)
@@ -51,13 +52,20 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 	return
 }
 
+// A Command represents a command supported by a configuration loader.
+type Command struct {
+	Name string // name of the command
+	Help string // help message describind the command
+}
+
 // A Loader can be used to provide a costomized configurable for loading a
 // configuration.
 type Loader struct {
-	Name    string   // program name
-	Usage   string   // program usage
-	Args    []string // list of arguments
-	Sources []Source // list of sources to load configuration from.
+	Name     string    // program name
+	Usage    string    // program usage
+	Commands []Command // list of commands
+	Args     []string  // list of arguments
+	Sources  []Source  // list of sources to load configuration from.
 }
 
 // Load uses the loader ld to load the program configuration into cfg, and
@@ -71,7 +79,7 @@ type Loader struct {
 // configuration.
 // The function panics if cfg is not a pointer to struct, or if it's a nil
 // pointer.
-func (ld Loader) Load(cfg interface{}) (args []string, err error) {
+func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	v1 := reflect.ValueOf(cfg)
 
 	if v1.Kind() != reflect.Ptr {
@@ -88,7 +96,7 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 
 	v2 := makeValue(v1)
 
-	if args, err = ld.load(v2); err != nil {
+	if cmd, args, err = ld.load(v2); err != nil {
 		return
 	}
 
@@ -97,7 +105,24 @@ func (ld Loader) Load(cfg interface{}) (args []string, err error) {
 	return
 }
 
-func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
+func (ld Loader) load(cfg reflect.Value) (cmd string, args []string, err error) {
+	if len(ld.Commands) != 0 {
+		if len(ld.Args) == 0 {
+			err = errors.New("missing command")
+			return
+		}
+		for _, c := range ld.Commands {
+			if c.Name == ld.Args[0] {
+				cmd, ld.Args = ld.Args[0], ld.Args[1:]
+				break
+			}
+		}
+		if len(cmd) == 0 {
+			err = errors.New("unknown command: " + ld.Args[0])
+			return
+		}
+	}
+
 	set := newFlagSet(cfg, ld.Name, ld.Sources...)
 
 	// Parse the arguments a first time so the sources that implement the
