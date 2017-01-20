@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// SaveTo writes a config struct into the file name in YAML format.
+// name is created if not exists.
 func SaveTo(name string, cfg interface{}) error {
 	f, err := os.Create(name)
 	if err != nil {
@@ -19,6 +21,7 @@ func SaveTo(name string, cfg interface{}) error {
 	return nil
 }
 
+// Save writes a config struct into w in YAML format.
 func Save(w io.Writer, cfg interface{}) {
 	v := reflect.ValueOf(cfg)
 	if v.Kind() != reflect.Struct {
