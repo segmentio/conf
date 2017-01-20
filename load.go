@@ -38,6 +38,9 @@ func Load(cfg interface{}) (args []string) {
 
 // LoadWith behaves like Load but uses ld as a loader to parse the program
 // configuration.
+//
+// The function panics if cfg is not a pointer to struct, or if it's a nil
+// pointer and no commands were set.
 func LoadWith(cfg interface{}, ld Loader) (cmd string, args []string) {
 	var err error
 	switch cmd, args, err = ld.Load(cfg); err {
@@ -79,7 +82,7 @@ type Loader struct {
 // fields or fields with a "conf" tag will be used to load the program
 // configuration.
 // The function panics if cfg is not a pointer to struct, or if it's a nil
-// pointer.
+// pointer and no commands were set.
 func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	var v1 reflect.Value
 
