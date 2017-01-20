@@ -81,7 +81,13 @@ type Loader struct {
 // The function panics if cfg is not a pointer to struct, or if it's a nil
 // pointer.
 func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
-	v1 := reflect.ValueOf(cfg)
+	var v1 reflect.Value
+
+	if cfg == nil {
+		v1 = reflect.ValueOf(&struct{}{})
+	} else {
+		v1 = reflect.ValueOf(cfg)
+	}
 
 	if v1.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
