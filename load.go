@@ -120,14 +120,14 @@ func (ld Loader) load(cfg reflect.Value) (cmd string, args []string, err error) 
 		}
 		for _, c := range ld.Commands {
 			if c.Name == ld.Args[0] {
-				cmd, ld.Args = ld.Args[0], ld.Args[1:]
+				cmd, args = ld.Args[0], ld.Args[1:]
 				break
 			}
 		}
 		if len(cmd) == 0 {
 			err = errors.New("unknown command: " + ld.Args[0])
-			return
 		}
+		return
 	}
 
 	set := newFlagSet(cfg, ld.Name, ld.Sources...)
