@@ -127,7 +127,9 @@ func (ld Loader) load(cfg reflect.Value) (cmd string, args []string, err error) 
 		if len(cmd) == 0 {
 			err = errors.New("unknown command: " + ld.Args[0])
 		}
-		return
+		if cfg.NumField() == 0 {
+			return
+		}
 	}
 
 	set := newFlagSet(cfg, ld.Name, ld.Sources...)
