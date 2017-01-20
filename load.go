@@ -63,8 +63,8 @@ type Command struct {
 type Loader struct {
 	Name     string    // program name
 	Usage    string    // program usage
-	Commands []Command // list of commands
 	Args     []string  // list of arguments
+	Commands []Command // list of commands
 	Sources  []Source  // list of sources to load configuration from.
 }
 
