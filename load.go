@@ -55,7 +55,7 @@ func LoadWith(cfg interface{}, ld Loader) (args []string) {
 // A Command represents a command supported by a configuration loader.
 type Command struct {
 	Name string // name of the command
-	Help string // help message describind the command
+	Help string // help message describing what the command does
 }
 
 // A Loader can be used to provide a costomized configurable for loading a
