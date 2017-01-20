@@ -59,8 +59,8 @@ type Command struct {
 	Help string // help message describing what the command does
 }
 
-// A Loader can be used to provide a costomized configurable for loading a
-// configuration.
+// A Loader exposes an API for customizing how a configuration is loaded and
+// where it's loaded from.
 type Loader struct {
 	Name     string    // program name
 	Usage    string    // program usage
