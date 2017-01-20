@@ -101,9 +101,34 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
+	if len(ld.Commands) != 0 {
+		if len(ld.Args) == 0 {
+			err = errors.New("missing command")
+			return
+		}
+
+		found := false
+		for _, c := range ld.Commands {
+			if c.Name == ld.Args[0] {
+				found, cmd, ld.Args = true, ld.Args[0], ld.Args[1:]
+				break
+			}
+		}
+
+		if !found {
+			err = errors.New("unknown command: " + ld.Args[0])
+			return
+		}
+
+		if cfg == nil {
+			args = ld.Args
+			return
+		}
+	}
+
 	v2 := makeValue(v1)
 
-	if cmd, args, err = ld.load(v2); err != nil {
+	if args, err = ld.load(v2); err != nil {
 		return
 	}
 
@@ -112,26 +137,7 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	return
 }
 
-func (ld Loader) load(cfg reflect.Value) (cmd string, args []string, err error) {
-	if len(ld.Commands) != 0 {
-		if len(ld.Args) == 0 {
-			err = errors.New("missing command")
-			return
-		}
-		for _, c := range ld.Commands {
-			if c.Name == ld.Args[0] {
-				cmd, args = ld.Args[0], ld.Args[1:]
-				break
-			}
-		}
-		if len(cmd) == 0 {
-			err = errors.New("unknown command: " + ld.Args[0])
-		}
-		if cfg.NumField() == 0 {
-			return
-		}
-	}
-
+func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
 	set := newFlagSet(cfg, ld.Name, ld.Sources...)
 
 	// Parse the arguments a first time so the sources that implement the
