@@ -37,9 +37,9 @@ func Load(cfg interface{}) (args []string) {
 
 // LoadWith behaves like Load but uses ld as a loader to parse the program
 // configuration.
-func LoadWith(cfg interface{}, ld Loader) (args []string) {
+func LoadWith(cfg interface{}, ld Loader) (cmd string, args []string) {
 	var err error
-	switch _, args, err = ld.Load(cfg); err {
+	switch cmd, args, err = ld.Load(cfg); err {
 	case nil:
 	case flag.ErrHelp:
 		ld.PrintHelp(cfg)
