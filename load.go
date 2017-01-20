@@ -32,7 +32,8 @@ import (
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
-	return LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
+	_, args = LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
+	return
 }
 
 // LoadWith behaves like Load but uses ld as a loader to parse the program
