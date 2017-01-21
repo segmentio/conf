@@ -114,40 +114,34 @@ func saveSlice(w io.Writer, v reflect.Value, indent int) {
 func saveString(w io.Writer, v reflect.Value, indent int) {
 	str := fmt.Sprint(v.Interface())
 
-	if s := strings.TrimSpace(str); strings.HasPrefix(s, `"`) ||
-		strings.HasPrefix(s, "'") ||
-		strings.HasPrefix(s, "`") ||
-		strings.HasPrefix(s, ">") ||
-		strings.HasPrefix(s, "|") ||
-		strings.HasPrefix(s, "?") ||
-		strings.HasPrefix(s, "!") ||
-		strings.HasPrefix(s, "&") ||
-		strings.HasPrefix(s, "@") ||
-		strings.HasPrefix(s, "%") ||
-		strings.HasPrefix(s, "*") ||
-		strings.HasPrefix(s, "-") ||
-		strings.HasPrefix(s, "[") ||
-		strings.HasPrefix(s, "]") ||
-		strings.HasPrefix(s, "{") ||
-		strings.HasPrefix(s, "}") ||
-		strings.HasPrefix(s, ":") ||
-		s == "true" ||
-		s == "True" ||
-		s == "TRUE" ||
-		s == "false" ||
-		s == "False" ||
-		s == "FALSE" ||
-		s == "null" ||
-		s == "Null" ||
-		s == "NULL" {
+	if len(str) == 0 {
+		fmt.Fprintln(w)
+		return
+	}
 
-		d, err := json.Marshal(str)
-		if err != nil {
-			panic(err)
+	trimed := strings.TrimSpace(str)
+	if len(trimed) != 0 {
+		marshal := false
+
+		switch trimed[0] {
+		case '\'', '"', '`', '>', '|', '?', '!', '&', '@', '%', '*', '-', '[', ']', '{', '}', ':':
+			marshal = true
 		}
 
-		fmt.Fprintf(w, "%s\n", d)
-		return
+		switch trimed {
+		case "true", "True", "TRUE", "false", "False", "FALSE", "null", "Null", "NULL":
+			marshal = true
+		}
+
+		if marshal {
+			d, err := json.Marshal(str)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Fprintf(w, "%s\n", d)
+			return
+		}
 	}
 
 	s := strings.Split(str, "\n")

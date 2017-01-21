@@ -124,7 +124,7 @@ for multi line test...
 			Age:  2,
 		},
 		MutilineString: mline,
-		SpecialString:  "> hello ' ', > world",
+		SpecialString:  "   > hello ' ', > world",
 	}
 
 	Save(w, cfg)
