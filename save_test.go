@@ -133,7 +133,9 @@ for multi line test...
 		SpecialInfString:  ".INF",
 	}
 
-	Save(w, cfg)
+	if err := Save(w, cfg); err != nil {
+		t.Fatal(err)
+	}
 	t.Log(w.String())
 
 	ld := Loader{
