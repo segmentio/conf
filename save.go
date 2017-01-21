@@ -114,7 +114,7 @@ func saveSlice(w io.Writer, v reflect.Value, indent int) {
 func saveString(w io.Writer, v reflect.Value, indent int) {
 	str := fmt.Sprint(v.Interface())
 
-	if s := strings.ToLower(strings.TrimSpace(str)); strings.HasPrefix(s, `"`) ||
+	if s := strings.TrimSpace(str); strings.HasPrefix(s, `"`) ||
 		strings.HasPrefix(s, "'") ||
 		strings.HasPrefix(s, "`") ||
 		strings.HasPrefix(s, ">") ||
@@ -132,15 +132,20 @@ func saveString(w io.Writer, v reflect.Value, indent int) {
 		strings.HasPrefix(s, "}") ||
 		strings.HasPrefix(s, ":") ||
 		s == "true" ||
+		s == "True" ||
+		s == "TRUE" ||
 		s == "false" ||
-		s == "null" {
+		s == "False" ||
+		s == "FALSE" ||
+		s == "null" ||
+		s == "Null" ||
+		s == "NULL" {
 
 		d, err := json.Marshal(str)
 		if err != nil {
 			panic(err)
 		}
 
-		fmt.Printf("%s\n", d)
 		fmt.Fprintf(w, "%s\n", d)
 		return
 	}

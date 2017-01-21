@@ -139,7 +139,7 @@ for multi line test...
 	}
 
 	var newCfg CfgSave
-	_, err := ld.Load(&newCfg)
+	_, _, err := ld.Load(&newCfg)
 	if err != nil {
 		t.Fatal(err)
 	}
