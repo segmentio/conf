@@ -135,7 +135,7 @@ func saveString(w io.Writer, v reflect.Value, indent int) {
 		s == "false" ||
 		s == "null" {
 
-		d, err := json.Marshal(s)
+		d, err := json.Marshal(str)
 		if err != nil {
 			panic(err)
 		}
