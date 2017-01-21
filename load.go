@@ -143,38 +143,7 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	setValue(v1, v2)
 
 	if err = validator.Validate(v1.Interface()); err != nil {
-		if errmap, ok := err.(validator.ErrorMap); ok {
-			errkeys := make([]string, 0, len(errmap))
-			errlist := make(errorList, 0, len(errmap))
-
-			for errkey := range errmap {
-				errkeys = append(errkeys, errkey)
-			}
-
-			sort.Strings(errkeys)
-
-			for _, errkey := range errkeys {
-				path := fieldPath(v1.Type(), errkey)
-
-				if len(errmap[errkey]) == 1 {
-					errlist = append(errlist, fmt.Errorf("invalid value passed to %s: %s", path, errmap[errkey][0]))
-				} else {
-					buf := &bytes.Buffer{}
-					fmt.Fprintf(buf, "invalid value passed to %s: ", path)
-
-					for i, errval := range errmap[errkey] {
-						if i != 0 {
-							buf.WriteString("; ")
-						}
-						buf.WriteString(errval.Error())
-					}
-
-					errlist = append(errlist, errors.New(buf.String()))
-				}
-			}
-
-			err = errlist
-		}
+		err = makeValidationError(err, v1)
 	}
 
 	return
@@ -238,6 +207,42 @@ func makeEnvVars(env []string) (vars map[string]string) {
 	}
 
 	return vars
+}
+
+func makeValidationError(err error, v reflect.Value) error {
+	if errmap, ok := err.(validator.ErrorMap); ok {
+		errkeys := make([]string, 0, len(errmap))
+		errlist := make(errorList, 0, len(errmap))
+
+		for errkey := range errmap {
+			errkeys = append(errkeys, errkey)
+		}
+
+		sort.Strings(errkeys)
+
+		for _, errkey := range errkeys {
+			path := fieldPath(v.Type(), errkey)
+
+			if len(errmap[errkey]) == 1 {
+				errlist = append(errlist, fmt.Errorf("invalid value passed to %s: %s", path, errmap[errkey][0]))
+			} else {
+				buf := &bytes.Buffer{}
+				fmt.Fprintf(buf, "invalid value passed to %s: ", path)
+
+				for i, errval := range errmap[errkey] {
+					if i != 0 {
+						buf.WriteString("; ")
+					}
+					buf.WriteString(errval.Error())
+				}
+
+				errlist = append(errlist, errors.New(buf.String()))
+			}
+		}
+
+		err = errlist
+	}
+	return err
 }
 
 type errorList []error
