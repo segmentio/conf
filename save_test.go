@@ -9,25 +9,28 @@ import (
 )
 
 type CfgSave struct {
-	String         string                       `conf:"string"                 help:"A string"`
-	Int            int                          `conf:"int"                    help:"An int"`
-	OmitString     string                       `conf:"omit-string,omitempty"  help:"Omit a string"`
-	OmitInt        int                          `conf:"omit-int,omitempty"     help:"Omit an int"`
-	Ignored        int                          `conf:"-"                      help:"Ignored field"`
-	Date           time.Time                    `conf:"date"                   help:"A date"`
-	SubStruct      CfgSub                       `conf:"sub-struct"             help:"A sub struct"`
-	Map            map[string]string            `conf:"map"                    help:"A map[string]string"`
-	MapStruct      map[int]CfgSub               `conf:"map-struct"             help:"A map[int]CfgSub"`
-	MapMap         map[string]map[string]string `conf:"map-map"                help:"A map[string]map[string]string"`
-	MapSlice       map[string][]int             `conf:"map-slice"              help:"A map[string][]int"`
-	SliceString    []string                     `conf:"slice-string"           help:"A slice of string"`
-	SliceStruct    []CfgSub                     `conf:"slice-struct"           help:"A slice of CfgSub"`
-	SliceMap       []map[string]string          `conf:"slice-map"              help:"A slice of map"`
-	SliceSlice     [][]string                   `conf:"slice-slice"            help:"A slice of slice"`
-	StructPtr      *CfgSub                      `conf:"struct-ptr"             help:"A ptr to CfgSub"`
-	Bool           bool                         `conf:"bool"                   help:"A boolean"`
-	MutilineString string                       `conf:"multi-line-string"      help:"A string with multiple lines"`
-	SpecialString  string                       `conf:"special-string"         help:"A string with special char"`
+	String            string                       `conf:"string"                 help:"A string"`
+	Int               int                          `conf:"int"                    help:"An int"`
+	OmitString        string                       `conf:"omit-string,omitempty"  help:"Omit a string"`
+	OmitInt           int                          `conf:"omit-int,omitempty"     help:"Omit an int"`
+	Ignored           int                          `conf:"-"                      help:"Ignored field"`
+	Date              time.Time                    `conf:"date"                   help:"A date"`
+	SubStruct         CfgSub                       `conf:"sub-struct"             help:"A sub struct"`
+	Map               map[string]string            `conf:"map"                    help:"A map[string]string"`
+	MapStruct         map[int]CfgSub               `conf:"map-struct"             help:"A map[int]CfgSub"`
+	MapMap            map[string]map[string]string `conf:"map-map"                help:"A map[string]map[string]string"`
+	MapSlice          map[string][]int             `conf:"map-slice"              help:"A map[string][]int"`
+	SliceString       []string                     `conf:"slice-string"           help:"A slice of string"`
+	SliceStruct       []CfgSub                     `conf:"slice-struct"           help:"A slice of CfgSub"`
+	SliceMap          []map[string]string          `conf:"slice-map"              help:"A slice of map"`
+	SliceSlice        [][]string                   `conf:"slice-slice"            help:"A slice of slice"`
+	StructPtr         *CfgSub                      `conf:"struct-ptr"             help:"A ptr to CfgSub"`
+	Bool              bool                         `conf:"bool"                   help:"A boolean"`
+	MutilineString    string                       `conf:"multi-line-string"      help:"A string with multiple lines"`
+	SpecialString     string                       `conf:"special-string"         help:"A string with special char"`
+	SpecialBoolString string                       `conf:"special-bool-string"    help:"A string with special char"`
+	SpecialNanString  string                       `conf:"special-nan-string"     help:"A string with special char"`
+	SpecialInfString  string                       `conf:"special-inf-string"     help:"A string with special char"`
 }
 
 type CfgSub struct {
@@ -123,8 +126,11 @@ for multi line test...
 			Name: "Hamtaro",
 			Age:  2,
 		},
-		MutilineString: mline,
-		SpecialString:  "   > hello ' ', > world",
+		MutilineString:    mline,
+		SpecialString:     "  | Hello world",
+		SpecialBoolString: " true",
+		SpecialNanString:  "  .NaN",
+		SpecialInfString:  ".INF",
 	}
 
 	Save(w, cfg)

@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"regexp"
+
 	"github.com/segmentio/objconv/json"
 )
 
@@ -130,6 +132,16 @@ func saveString(w io.Writer, v reflect.Value, indent int) {
 
 		switch trimed {
 		case "true", "True", "TRUE", "false", "False", "FALSE", "null", "Null", "NULL":
+			marshal = true
+		}
+
+		rxpNan := regexp.MustCompile(`^\.(nan|NaN|NAN)`)
+		if rxpNan.MatchString(trimed) {
+			marshal = true
+		}
+
+		rxpInf := regexp.MustCompile(`^\.(inf|Inf|INF)`)
+		if rxpInf.MatchString(trimed) {
 			marshal = true
 		}
 
