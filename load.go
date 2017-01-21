@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,7 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
+
+	validator "gopkg.in/validator.v2"
 
 	"github.com/segmentio/objconv/yaml"
 )
@@ -137,6 +141,42 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 
 	setZero(v1)
 	setValue(v1, v2)
+
+	if err = validator.Validate(v1.Interface()); err != nil {
+		if errmap, ok := err.(validator.ErrorMap); ok {
+			errkeys := make([]string, 0, len(errmap))
+			errlist := make(errorList, 0, len(errmap))
+
+			for errkey := range errmap {
+				errkeys = append(errkeys, errkey)
+			}
+
+			sort.Strings(errkeys)
+
+			for _, errkey := range errkeys {
+				path := fieldPath(v1.Type(), errkey)
+
+				if len(errmap[errkey]) == 1 {
+					errlist = append(errlist, fmt.Errorf("invalid value passed to %s: %s", path, errmap[errkey][0]))
+				} else {
+					buf := &bytes.Buffer{}
+					fmt.Fprintf(buf, "invalid value passed to %s: ", path)
+
+					for i, errval := range errmap[errkey] {
+						if i != 0 {
+							buf.WriteString("; ")
+						}
+						buf.WriteString(errval.Error())
+					}
+
+					errlist = append(errlist, errors.New(buf.String()))
+				}
+			}
+
+			err = errlist
+		}
+	}
+
 	return
 }
 
@@ -198,4 +238,13 @@ func makeEnvVars(env []string) (vars map[string]string) {
 	}
 
 	return vars
+}
+
+type errorList []error
+
+func (err errorList) Error() string {
+	if len(err) > 0 {
+		return err[0].Error()
+	}
+	return ""
 }
