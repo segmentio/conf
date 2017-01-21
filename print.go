@@ -37,7 +37,21 @@ func (ld Loader) FprintHelp(w io.Writer, cfg interface{}) {
 }
 
 func (ld Loader) fprintError(w io.Writer, err error, col colors) {
-	fmt.Fprintf(w, "%s\n  %s\n\n", col.titles("Error:"), col.errors(err.Error()))
+	var errors errorList
+
+	if e, ok := err.(errorList); ok {
+		errors = e
+	} else {
+		errors = errorList{err}
+	}
+
+	fmt.Fprintf(w, "%s\n", col.titles("Error:"))
+
+	for _, e := range errors {
+		fmt.Fprintf(w, "  %s\n", col.errors(e.Error()))
+	}
+
+	fmt.Fprintln(w)
 }
 
 func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {

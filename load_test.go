@@ -340,6 +340,22 @@ func TestCommand(t *testing.T) {
 	})
 }
 
+func TestValidator(t *testing.T) {
+	config := struct {
+		A struct {
+			Bind string `conf:"bind" validate:"nonzero"`
+		}
+	}{}
+
+	_, _, err := (Loader{}).Load(&config)
+
+	if err == nil {
+		t.Error("bad error:", err)
+	} else {
+		t.Log(err)
+	}
+}
+
 func parseURL(s string) url.URL {
 	u, _ := url.Parse(s)
 	return *u
