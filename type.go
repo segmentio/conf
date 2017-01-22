@@ -88,3 +88,28 @@ func makeStructField(f reflect.StructField) reflect.StructField {
 func isExported(f reflect.StructField) bool {
 	return len(f.PkgPath) == 0
 }
+
+func fieldPath(typ reflect.Type, path string) string {
+	var name string
+
+	if sep := strings.IndexByte(path, '.'); sep >= 0 {
+		name, path = path[:sep], path[sep+1:]
+	} else {
+		name, path = path, ""
+	}
+
+	if field, ok := typ.FieldByName(name); ok {
+		if name = field.Tag.Get("conf"); len(name) == 0 {
+			name = field.Name
+		}
+		if len(path) != 0 {
+			path = fieldPath(field.Type, path)
+		}
+	}
+
+	if len(path) != 0 {
+		name += "." + path
+	}
+
+	return name
+}
