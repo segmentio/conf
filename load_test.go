@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/mail"
@@ -12,6 +13,74 @@ import (
 
 	"github.com/segmentio/objconv/yaml"
 )
+
+func TestFieldPath(t *testing.T) {
+	tests := []struct {
+		value  interface{}
+		input  string
+		output string
+	}{
+		{
+			value:  struct{}{},
+			input:  "",
+			output: "",
+		},
+		{
+			value:  struct{ A int }{},
+			input:  "A",
+			output: "A",
+		},
+		{
+			value:  struct{ A int }{},
+			input:  "1.2.3",
+			output: "1.2.3",
+		},
+		{
+			value: struct {
+				A int `conf:"a"`
+			}{},
+			input:  "A",
+			output: "a",
+		},
+		{
+			value: struct {
+				A int `conf:"a"`
+			}{},
+			input:  "a",
+			output: "a",
+		},
+		{
+			value: struct {
+				A struct {
+					B struct {
+						C int `conf:"c"`
+					} `conf:"b"`
+				} `conf:"a"`
+			}{},
+			input:  "A.B.C",
+			output: "a.b.c",
+		},
+		{
+			value: struct {
+				A struct {
+					B struct {
+						C int `conf:"c"`
+					} `conf:"b"`
+				} `conf:"a"`
+			}{},
+			input:  "A.B",
+			output: "a.b",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			if output := fieldPath(reflect.TypeOf(test.value), test.input); output != test.output {
+				t.Error(output)
+			}
+		})
+	}
+}
 
 type point struct {
 	X int `conf:"x"`
@@ -70,21 +139,7 @@ var (
 		},
 
 		{
-			val:  struct{ S []byte }{[]byte("Hello World!")},
-			file: `S: SGVsbG8gV29ybGQh`,
-			args: []string{"-S", "SGVsbG8gV29ybGQh\n"},
-			env:  []string{"TEST_S=SGVsbG8gV29ybGQh"},
-		},
-
-		{
 			val:  struct{ L []int }{[]int{1, 2, 3}},
-			file: `L: [1, 2, 3]`,
-			args: []string{"-L", "[1,2,3]"},
-			env:  []string{"TEST_L=[1, 2, 3]"},
-		},
-
-		{
-			val:  struct{ L [3]int }{[3]int{1, 2, 3}},
 			file: `L: [1, 2, 3]`,
 			args: []string{"-L", "[1,2,3]"},
 			env:  []string{"TEST_L=[1, 2, 3]"},
@@ -185,25 +240,27 @@ var (
 
 func TestLoad(t *testing.T) {
 	for _, test := range loadTests {
-		t.Run("", func(t *testing.T) {
+		t.Run(fmt.Sprint(test.val), func(t *testing.T) {
 			ld := Loader{
 				Name: "test",
 				Args: test.args,
 				Sources: []Source{
-					SourceFunc(func(dst interface{}) (err error) { return yaml.Unmarshal([]byte(test.file), dst) }),
+					SourceFunc(func(dst Map) (err error) { return yaml.Unmarshal([]byte(test.file), dst) }),
 					NewEnvSource("test", test.env...),
 				},
 			}
 
-			val := reflect.New(reflect.TypeOf(test.val)).Elem()
+			val := reflect.New(reflect.TypeOf(test.val))
 
-			if _, _, err := ld.Load(val.Addr().Interface()); err != nil {
+			if _, _, err := ld.Load(val.Interface()); err != nil {
 				t.Error(err)
+				t.Log("<<<", test.val)
+				t.Log(">>>", val.Elem().Interface())
 				return
 			}
 
-			if !reflect.DeepEqual(test.val, val.Interface()) {
-				t.Errorf("bad value:\n<<< %#v\n>>> %#v", test.val, val.Interface())
+			if v := val.Elem().Interface(); !reflect.DeepEqual(test.val, v) {
+				t.Errorf("bad value:\n<<< %#v\n>>> %#v", test.val, v)
 			}
 		})
 	}
@@ -247,7 +304,7 @@ points:
 	}
 
 	type extra struct {
-		Dummy [3]map[string]string
+		Dummy []map[string]string
 	}
 
 	type config struct {
@@ -274,13 +331,7 @@ points:
 				t.Error("bad args:", args)
 			}
 
-			if !reflect.DeepEqual(cfg, config{Points: []point{{0, 0}, {1, 2}, {21, 42}}, Extra: &extra{
-				Dummy: [3]map[string]string{
-					map[string]string{},
-					map[string]string{},
-					map[string]string{},
-				},
-			}}) {
+			if !reflect.DeepEqual(cfg, config{Points: []point{{0, 0}, {1, 2}, {21, 42}}, Extra: &extra{}}) {
 				t.Errorf("bad config: %#v", cfg)
 			}
 		})

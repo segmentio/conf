@@ -14,6 +14,8 @@ import (
 
 	validator "gopkg.in/validator.v2"
 
+	// Load all default adapters of the objconv package.
+	_ "github.com/segmentio/objconv/adapters"
 	"github.com/segmentio/objconv/yaml"
 )
 
@@ -88,23 +90,23 @@ type Loader struct {
 // The function panics if cfg is not a pointer to struct, or if it's a nil
 // pointer and no commands were set.
 func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
-	var v1 reflect.Value
+	var v reflect.Value
 
 	if cfg == nil {
-		v1 = reflect.ValueOf(&struct{}{})
+		v = reflect.ValueOf(&struct{}{})
 	} else {
-		v1 = reflect.ValueOf(cfg)
+		v = reflect.ValueOf(cfg)
 	}
 
-	if v1.Kind() != reflect.Ptr {
+	if v.Kind() != reflect.Ptr {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
-	if v1.IsNil() {
+	if v.IsNil() {
 		panic(fmt.Sprintf("cannot load configuration into nil %T", cfg))
 	}
 
-	if v1 = v1.Elem(); v1.Kind() != reflect.Struct {
+	if v = v.Elem(); v.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
@@ -133,24 +135,20 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 		}
 	}
 
-	v2 := makeValue(v1)
-
-	if args, err = ld.load(v2); err != nil {
+	if args, err = ld.load(v); err != nil {
 		return
 	}
 
-	setZero(v1)
-	setValue(v1, v2)
-
-	if err = validator.Validate(v1.Interface()); err != nil {
-		err = makeValidationError(err, v1.Type())
+	if err = validator.Validate(v.Interface()); err != nil {
+		err = makeValidationError(err, v.Type())
 	}
 
 	return
 }
 
 func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
-	set := newFlagSet(cfg, ld.Name, ld.Sources...)
+	node := makeNodeStruct(cfg, cfg.Type())
+	set := newFlagSet(node, ld.Name, ld.Sources...)
 
 	// Parse the arguments a first time so the sources that implement the
 	// FlagSource interface get their values loaded.
@@ -163,7 +161,7 @@ func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
 	// Order is important here because the values will get overwritten by each
 	// source that loads the configuration.
 	for _, source := range ld.Sources {
-		if err = source.Load(cfg.Addr().Interface()); err != nil {
+		if err = source.Load(node); err != nil {
 			return
 		}
 	}
@@ -252,4 +250,29 @@ func (err errorList) Error() string {
 		return err[0].Error()
 	}
 	return ""
+}
+
+func fieldPath(typ reflect.Type, path string) string {
+	var name string
+
+	if sep := strings.IndexByte(path, '.'); sep >= 0 {
+		name, path = path[:sep], path[sep+1:]
+	} else {
+		name, path = path, ""
+	}
+
+	if field, ok := typ.FieldByName(name); ok {
+		if name = field.Tag.Get("conf"); len(name) == 0 {
+			name = field.Name
+		}
+		if len(path) != 0 {
+			path = fieldPath(field.Type, path)
+		}
+	}
+
+	if len(path) != 0 {
+		name += "." + path
+	}
+
+	return name
 }

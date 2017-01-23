@@ -336,11 +336,11 @@ func TestNodeString(t *testing.T) {
 			node: Scalar{reflect.ValueOf(42)},
 		},
 		{
-			repr: `"Hello World!"`,
+			repr: `Hello World!`,
 			node: Scalar{reflect.ValueOf("Hello World!")},
 		},
 		{
-			repr: `"2016-12-31T23:42:59Z"`,
+			repr: `2016-12-31T23:42:59Z`,
 			node: Scalar{reflect.ValueOf(date)},
 		},
 		{
@@ -414,6 +414,10 @@ func TestNodeJSON(t *testing.T) {
 		{
 			node: MakeNode(struct{ A, B, C int }{1, 2, 3}),
 			json: `{"A":1,"B":2,"C":3}`,
+		},
+		{
+			node: MakeNode(struct{ A []int }{[]int{1, 2, 3}}),
+			json: `{"A":[1,2,3]}`,
 		},
 	}
 

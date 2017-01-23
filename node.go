@@ -2,6 +2,8 @@ package conf
 
 import (
 	"bytes"
+	"encoding"
+	"flag"
 	"fmt"
 	"reflect"
 	"sort"
@@ -9,28 +11,39 @@ import (
 
 	"github.com/segmentio/objconv"
 	"github.com/segmentio/objconv/json"
+	"github.com/segmentio/objconv/yaml"
 )
 
+// NodeKind is an enumeration which describes the different types of nodes that
+// are supported in a configuration.
 type NodeKind int
 
 const (
+	// ScalarNode represents configuration nodes of type Scalar.
 	ScalarNode NodeKind = iota
+
+	// ArrayNode represents configuration nodes of type Array.
 	ArrayNode
+
+	// MapNode represents configuration nodes of type Map.
 	MapNode
 )
 
+// The Node interface defines the common interface supported by the different
+// types of configuration nodes supported by the conf package.
 type Node interface {
+	flag.Value
+	objconv.ValueEncoder
+	objconv.ValueDecoder
+
+	// Kind returns the NodeKind of the configuration node.
 	Kind() NodeKind
 
+	// Value returns the underlying value wrapped by the configuration node.
 	Value() interface{}
-
-	String() string
-
-	EncodeValue(objconv.Encoder) error
-
-	DecodeValue(objconv.Decoder) error
 }
 
+// EqualNode compares n1 and n2, returning true if they are deeply equal.
 func EqualNode(n1 Node, n2 Node) bool {
 	if n1 == nil || n2 == nil {
 		return n1 == n2
@@ -110,8 +123,11 @@ func equalNodeScalar(s1 Scalar, s2 Scalar) bool {
 	return reflect.DeepEqual(s1.Value(), s2.Value())
 }
 
-func MakeNode(cfg interface{}) Node {
-	return makeNode(reflect.ValueOf(cfg))
+// MakeNode builds a Node from the value v.
+//
+// The function panics if v contains unrepresentable values.
+func MakeNode(v interface{}) Node {
+	return makeNode(reflect.ValueOf(v))
 }
 
 func makeNode(v reflect.Value) Node {
@@ -138,6 +154,9 @@ func makeNode(v reflect.Value) Node {
 	}
 
 	switch t.Kind() {
+	case reflect.Array, reflect.Chan, reflect.Func, reflect.UnsafePointer, reflect.Interface:
+		panic("unsupported type found in configuration: " + t.String())
+
 	case reflect.Struct:
 		return makeNodeStruct(v, t)
 
@@ -234,6 +253,11 @@ func makeNodeScalar(value reflect.Value) (s Scalar) {
 	return
 }
 
+func isExported(f reflect.StructField) bool {
+	return len(f.PkgPath) == 0
+}
+
+// A Scalar is a node type that wraps a basic value.
 type Scalar struct {
 	value reflect.Value
 }
@@ -250,8 +274,27 @@ func (s Scalar) Value() interface{} {
 }
 
 func (s Scalar) String() string {
-	b, _ := json.Marshal(s)
-	return string(b)
+	b, _ := yaml.Marshal(s)
+	return string(bytes.TrimSpace(b))
+}
+
+func (s Scalar) Set(str string) (err error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = fmt.Errorf("%s", x)
+		}
+	}()
+	ptr := s.value.Addr().Interface()
+
+	if err = yaml.Unmarshal([]byte(str), ptr); err != nil {
+		if b, _ := json.Marshal(str); b != nil {
+			if json.Unmarshal(b, ptr) == nil {
+				err = nil
+			}
+		}
+	}
+
+	return
 }
 
 func (s Scalar) EncodeValue(e objconv.Encoder) error {
@@ -262,6 +305,11 @@ func (s Scalar) DecodeValue(d objconv.Decoder) error {
 	return d.Decode(s.value.Addr().Interface())
 }
 
+func (s Scalar) IsBoolFlag() bool {
+	return s.value.IsValid() && s.value.Kind() == reflect.Bool
+}
+
+// Array is a node type that wraps a slice value.
 type Array struct {
 	value reflect.Value
 	items *arrayItems
@@ -314,6 +362,10 @@ func (a Array) String() string {
 	return b.String()
 }
 
+func (a Array) Set(s string) error {
+	return yaml.Unmarshal([]byte(s), a)
+}
+
 func (a Array) EncodeValue(e objconv.Encoder) (err error) {
 	i := 0
 	return e.EncodeArray(a.Len(), func(e objconv.Encoder) (err error) {
@@ -344,15 +396,22 @@ func (a Array) push() Node {
 
 func (a Array) pop(n int) {
 	if n != 0 {
-		i := a.Len() - n
-		a.value.Set(a.value.Slice(0, i))
+		a.value.Set(a.value.Slice(0, a.Len()-n))
 		a.items.pop(n)
 	}
 }
 
+// Map is a map type that wraps a map or struct value.
 type Map struct {
 	value reflect.Value
 	items *mapItems
+}
+
+// MapItem is the type of elements stored in a Map.
+type MapItem struct {
+	Name  string
+	Help  string
+	Value Node
 }
 
 func (m Map) Kind() NodeKind {
@@ -410,18 +469,20 @@ func (m Map) String() string {
 	return b.String()
 }
 
+func (m Map) Set(s string) error {
+	return yaml.Unmarshal([]byte(s), m)
+}
+
 func (m Map) EncodeValue(e objconv.Encoder) error {
 	i := 0
 	return e.EncodeMap(m.Len(), func(ke objconv.Encoder, ve objconv.Encoder) (err error) {
 		item := m.items.nodes[i]
-
 		if err = ke.EncodeString(item.Name); err != nil {
 			return
 		}
 		if err = item.Value.EncodeValue(ve); err != nil {
 			return
 		}
-
 		i++
 		return
 	})
@@ -435,16 +496,15 @@ func (m Map) DecodeValue(d objconv.Decoder) error {
 			return
 		}
 
-		if item := m.Item(key); item != nil {
-			return item.DecodeValue(vd)
-		}
-
 		if m.value.Kind() == reflect.Struct {
+			if item := m.Item(key); item != nil {
+				return item.DecodeValue(vd)
+			}
 			return vd.Decode(nil) // discard
 		}
 
 		name := reflect.ValueOf(key)
-		node := makeNode(reflect.New(m.value.Type().Elem()).Elem())
+		node := makeNode(reflect.New(m.value.Type().Elem()))
 
 		if err = node.DecodeValue(vd); err != nil {
 			return
@@ -459,10 +519,19 @@ func (m Map) DecodeValue(d objconv.Decoder) error {
 	})
 }
 
-type MapItem struct {
-	Name  string
-	Help  string
-	Value Node
+func (m Map) Scan(do func([]string, MapItem)) {
+	m.scan(make([]string, 0, 10), do)
+}
+
+func (m Map) scan(path []string, do func([]string, MapItem)) {
+	for _, item := range m.Items() {
+		do(path, item)
+
+		switch v := item.Value.(type) {
+		case Map:
+			v.scan(append(path, item.Name), do)
+		}
+	}
 }
 
 type arrayItems struct {
@@ -478,7 +547,7 @@ func (a *arrayItems) push(n Node) {
 }
 
 func (a *arrayItems) pop(n int) {
-	a.nodes = a.nodes[:n]
+	a.nodes = a.nodes[:len(a.nodes)-n]
 }
 
 func (a *arrayItems) len() int {
@@ -548,3 +617,11 @@ func (m *mapItems) Swap(i int, j int) {
 func (m *mapItems) Len() int {
 	return len(m.nodes)
 }
+
+var (
+	timeTimeType     = reflect.TypeOf(time.Time{})
+	timeDurationType = reflect.TypeOf(time.Duration(0))
+
+	objconvValueDecoderInterface = reflect.TypeOf((*objconv.ValueDecoder)(nil)).Elem()
+	textUnmarshalerInterface     = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+)
