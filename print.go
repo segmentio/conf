@@ -271,9 +271,13 @@ func isBoolFlag(v reflect.Value) bool {
 		IsBoolFlag() bool
 	}
 
+	if !v.IsValid() {
+		return false
+	}
+
 	if x, ok := v.Interface().(iface); ok {
 		return x.IsBoolFlag()
 	}
 
-	return v.IsValid() && v.Kind() == reflect.Bool
+	return v.Kind() == reflect.Bool
 }
