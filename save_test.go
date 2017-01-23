@@ -11,8 +11,6 @@ import (
 type CfgSave struct {
 	String            string                       `conf:"string"                 help:"A string"`
 	Int               int                          `conf:"int"                    help:"An int"`
-	OmitString        string                       `conf:"omit-string,omitempty"  help:"Omit a string"`
-	OmitInt           int                          `conf:"omit-int,omitempty"     help:"Omit an int"`
 	Ignored           int                          `conf:"-"                      help:"Ignored field"`
 	Date              time.Time                    `conf:"date"                   help:"A date"`
 	SubStruct         CfgSub                       `conf:"sub-struct"             help:"A sub struct"`

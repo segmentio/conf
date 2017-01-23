@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"regexp"
-
 	"github.com/segmentio/objconv/json"
 )
 
@@ -32,10 +30,26 @@ func Save(w io.Writer, cfg interface{}) error {
 		panic(fmt.Sprint("cfg should be a struct"))
 	}
 
-	return saveStruct(w, v, 0)
+	sw := &saveWriter{Writer: w}
+	saveStruct(sw, v, 0)
+	return sw.err
 }
 
-func saveStruct(w io.Writer, v reflect.Value, indent int) error {
+type saveWriter struct {
+	io.Writer
+	err error
+}
+
+func (w *saveWriter) Write(b []byte) (n int, err error) {
+	if err = w.err; err == nil {
+		if n, err = w.Writer.Write(b); err != nil {
+			w.err = err
+		}
+	}
+	return
+}
+
+func saveStruct(w *saveWriter, v reflect.Value, indent int) {
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
@@ -47,15 +61,9 @@ func saveStruct(w io.Writer, v reflect.Value, indent int) error {
 		}
 
 		if help := f.Tag.Get("help"); len(help) != 0 {
-			if _, err := fmt.Fprintln(w); err != nil {
-				return err
-			}
-			if err := saveIndent(w, indent); err != nil {
-				return err
-			}
-			if _, err := fmt.Fprintln(w, "#", help); err != nil {
-				return err
-			}
+			fmt.Fprintln(w)
+			saveIndent(w, indent)
+			fmt.Fprintln(w, "#", help)
 		}
 
 		name := f.Name
@@ -63,97 +71,71 @@ func saveStruct(w io.Writer, v reflect.Value, indent int) error {
 			name = conf
 		}
 
-		if err := saveIndent(w, indent); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintf(w, "%v: ", name); err != nil {
-			return err
-		}
-		if err := save(w, fv, indent); err != nil {
-			return err
-		}
+		saveIndent(w, indent)
+		fmt.Fprintf(w, "%v: ", name)
+		save(w, fv, indent)
 	}
-	return nil
 }
 
-func save(w io.Writer, v reflect.Value, indent int) error {
+func save(w *saveWriter, v reflect.Value, indent int) {
 	switch v.Kind() {
 	case reflect.Struct:
 		switch s := v.Interface().(type) {
 		case time.Time:
-			_, err := fmt.Fprintln(w, s.Format(time.RFC3339Nano))
-			return err
+			fmt.Fprintln(w, s.Format(time.RFC3339Nano))
+			return
 		}
 
-		if _, err := fmt.Fprintln(w); err != nil {
-			return err
-		}
-		return saveStruct(w, v, indent+1)
+		fmt.Fprintln(w)
+		saveStruct(w, v, indent+1)
 
 	case reflect.Map:
-		if _, err := fmt.Fprintln(w); err != nil {
-			return err
-		}
-		return saveMap(w, v, indent+1)
+		fmt.Fprintln(w)
+		saveMap(w, v, indent+1)
 
 	case reflect.Slice:
-		if _, err := fmt.Fprintln(w); err != nil {
-			return err
-		}
-		return saveSlice(w, v, indent+1)
+		fmt.Fprintln(w)
+		saveSlice(w, v, indent+1)
 
 	case reflect.Ptr:
-		return save(w, v.Elem(), indent)
+		save(w, v.Elem(), indent)
 
 	case reflect.Bool:
-		_, err := fmt.Fprintln(w, v.Interface())
-		return err
+		fmt.Fprintln(w, v.Interface())
+
+	case reflect.String:
+		saveString(w, v, indent)
 
 	default:
-		return saveString(w, v, indent)
+		fmt.Fprintln(w, v.Interface())
 	}
 }
 
-func saveMap(w io.Writer, v reflect.Value, indent int) error {
+func saveMap(w *saveWriter, v reflect.Value, indent int) {
 	for _, mk := range v.MapKeys() {
 		mv := v.MapIndex(mk)
 
-		if err := saveIndent(w, indent); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintf(w, "%v: ", mk.Interface()); err != nil {
-			return err
-		}
-		if err := save(w, mv, indent); err != nil {
-			return err
-		}
+		saveIndent(w, indent)
+		fmt.Fprintf(w, "%v: ", mk.Interface())
+		save(w, mv, indent)
 	}
-	return nil
 }
 
-func saveSlice(w io.Writer, v reflect.Value, indent int) error {
+func saveSlice(w *saveWriter, v reflect.Value, indent int) {
 	for i := 0; i < v.Len(); i++ {
 		sv := v.Index(i)
 
-		if err := saveIndent(w, indent); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprint(w, "- "); err != nil {
-			return err
-		}
-		if err := save(w, sv, indent); err != nil {
-			return err
-		}
+		saveIndent(w, indent)
+		fmt.Fprint(w, "- ")
+		save(w, sv, indent)
 	}
-	return nil
 }
 
-func saveString(w io.Writer, v reflect.Value, indent int) error {
+func saveString(w *saveWriter, v reflect.Value, indent int) {
 	str := fmt.Sprint(v.Interface())
 
 	if len(str) == 0 {
-		_, err := fmt.Fprintln(w)
-		return err
+		fmt.Fprintln(w)
 	}
 
 	trimed := strings.TrimSpace(str)
@@ -166,58 +148,38 @@ func saveString(w io.Writer, v reflect.Value, indent int) error {
 		}
 
 		switch trimed {
-		case "true", "True", "TRUE", "false", "False", "FALSE", "null", "Null", "NULL":
-			marshal = true
-		}
-
-		rxpNan := regexp.MustCompile(`^\.(nan|NaN|NAN)`)
-		if rxpNan.MatchString(trimed) {
-			marshal = true
-		}
-
-		rxpInf := regexp.MustCompile(`^\.(inf|Inf|INF)`)
-		if rxpInf.MatchString(trimed) {
+		case "true", "True", "TRUE", "false", "False", "FALSE", "null", "Null", "NULL", ".nan", ".NaN", ".NAN", ".inf", ".Inf", ".INF":
 			marshal = true
 		}
 
 		if marshal {
 			d, err := json.Marshal(str)
 			if err != nil {
-				return err
+				w.err = err
+				return
 			}
-
-			_, err = fmt.Fprintf(w, "%s\n", d)
-			return err
+			fmt.Fprintf(w, "%s\n", d)
+			return
 		}
 	}
 
 	s := strings.Split(str, "\n")
 	if len(s) == 1 {
-		_, err := fmt.Fprintln(w, str)
-		return err
+		fmt.Fprintln(w, str)
+		return
 	}
 
-	if _, err := fmt.Fprintln(w, "|"); err != nil {
-		return err
-	}
+	fmt.Fprintln(w, "|")
 	indent++
 
 	for _, line := range s {
-		if err := saveIndent(w, indent); err != nil {
-			return err
-		}
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
+		saveIndent(w, indent)
+		fmt.Fprintln(w, line)
 	}
-	return nil
 }
 
-func saveIndent(w io.Writer, n int) error {
+func saveIndent(w *saveWriter, n int) {
 	for i := 0; i < n; i++ {
-		if _, err := fmt.Fprint(w, "  "); err != nil {
-			return err
-		}
+		fmt.Fprint(w, "  ")
 	}
-	return nil
 }
