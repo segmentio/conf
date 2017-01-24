@@ -149,8 +149,6 @@ func main() {
 ```
 $ go run ./example.go version
 1.2.3
-```
-```
 $ go run ./example.go print -m 'Hello World!'
 Hello World!
 ```
