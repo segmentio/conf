@@ -60,7 +60,11 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	var m Map
 
 	if cfg != nil {
-		m = makeNodeStruct(reflect.ValueOf(cfg), reflect.TypeOf(cfg))
+		v := reflect.ValueOf(cfg)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		m = makeNodeStruct(v, v.Type())
 	}
 
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
