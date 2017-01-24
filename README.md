@@ -178,7 +178,7 @@ a raw `reflect.Value`.
 One of the advantages of the `conf.Map` type is that it implements the
 [objconv.ValueDecoder](https://godoc.org/github.com/segmentio/objconv#ValueDecoder)
 interface and therefore can be used directly to load configurations from a
-serialized form (like JSON for example).
+serialized format (like JSON for example).
 
 Validation
 ----------
