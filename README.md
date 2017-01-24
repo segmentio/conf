@@ -12,20 +12,21 @@ when the program needs to load configuration from other sources (like a file, or
 the environment variables).  
 The `conf` package was built to address these issues, here were the goals:
 
-- **Loading the configuration has to be type-safe,** there are other rich
-packages available but they often require doing type assertions on the
-configuration values which is always an opportunity to get a panic.
+- **Loading the configuration has to be type-safe**, there were other packages
+available that were covering the same use-cases but they often required doing
+type assertions on the configuration values which is always an opportunity to
+get the program to panic.
 
-- **Keeping the API minimal,** while the `flag` package offers the type safety
+- **Keeping the API minimal**, while the `flag` package offers the type safety
 we needed it is also very verbose to setup. With `conf`, only a single function
 call is needed to setup and load the entire program configuration.
 
-- **Supporting richer syntaxes,** because program configurations are often
+- **Supporting richer syntaxes**, because program configurations are often
 generated dynamically, the `conf` package accepts YAML values as input to all
 configuration values. It also has support for sub-commands on the command line,
 which is a common approach used by CLI tools.
 
-- **Supporting multiple sources,** because passing values through the command
+- **Supporting multiple sources**, because passing values through the command
 line is not always the best appraoch, programs may need to receive their
 configuration from files, environment variables, secret stores, or other network
 locations.
