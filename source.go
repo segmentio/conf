@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"flag"
 	"html/template"
-	"reflect"
 	"strings"
 )
 
@@ -12,10 +11,11 @@ import (
 // make it possible to load configuration from new places.
 //
 // When the configuration is loaded the Load method of each source that was set
-// on a loader is called with a pointer to an in-memory structure representing
-// the configuration object passed as dst.
+// on a loader is called with an Node representating the configuration struct.
+// The typical implementation of a source is to load the serialized version of
+// the configuration and use an objconv decoder to build the node.
 type Source interface {
-	Load(dst interface{}) error
+	Load(dst Map) error
 }
 
 // FlagSource is a special case of a source that receives a configuration value
@@ -37,10 +37,10 @@ type FlagSource interface {
 
 // SourceFunc makes it possible to use basic function types as configuration
 // sources.
-type SourceFunc func(dst interface{}) error
+type SourceFunc func(dst Map) error
 
 // Load calls f.
-func (f SourceFunc) Load(dst interface{}) error {
+func (f SourceFunc) Load(dst Map) error {
 	return f(dst)
 }
 
@@ -50,32 +50,22 @@ func (f SourceFunc) Load(dst interface{}) error {
 // A prefix may be set to namespace the environment variables that the source
 // will be looking at.
 func NewEnvSource(prefix string, env ...string) Source {
-	return SourceFunc(func(dst interface{}) (err error) {
-		if len(env) != 0 {
-			type entry struct {
-				key string
-				val flagValue
-			}
-			var entries []entry
+	vars := makeEnvVars(env)
+	base := append(make([]string, 0, 10), prefix)
 
-			scanFields(reflect.ValueOf(dst).Elem(), prefix, "_", func(key string, help string, val reflect.Value) {
-				entries = append(entries, entry{
-					key: snakecaseUpper(key) + "=",
-					val: makeFlagValue(val),
-				})
-			})
+	return SourceFunc(func(dst Map) (err error) {
+		dst.Scan(func(path []string, item MapItem) {
+			path = append(base, path...)
+			path = append(path, item.Name)
 
-			for _, e := range entries {
-				for _, kv := range env {
-					if strings.HasPrefix(kv, e.key) {
-						if err = e.val.Set(kv[len(e.key):]); err != nil {
-							return
-						}
-						break
-					}
+			k := snakecaseUpper(strings.Join(path, "_"))
+
+			if v, ok := vars[k]; ok {
+				if e := item.Value.Set(v); e != nil {
+					err = e
 				}
 			}
-		}
+		})
 		return
 	})
 }
@@ -111,7 +101,7 @@ type fileSource struct {
 	unmarshal func([]byte, interface{}) error
 }
 
-func (f *fileSource) Load(dst interface{}) (err error) {
+func (f *fileSource) Load(dst Map) (err error) {
 	var b []byte
 
 	if len(f.path) == 0 {

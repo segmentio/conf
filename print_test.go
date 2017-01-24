@@ -3,9 +3,6 @@ package conf
 import (
 	"bytes"
 	"errors"
-	"net"
-	"net/mail"
-	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -46,10 +43,6 @@ func TestPrettyType(t *testing.T) {
 		{map[int]int{}, "object"},
 		{struct{}{}, "object"},
 		{&struct{}{}, "object"},
-
-		{net.TCPAddr{}, "address"},
-		{mail.Address{}, "email"},
-		{url.URL{}, "url"},
 	}
 
 	for _, test := range tests {

@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/segmentio/objconv"
+
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -55,20 +57,10 @@ func (ld Loader) fprintError(w io.Writer, err error, col colors) {
 }
 
 func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
-	var v reflect.Value
+	var m Map
 
-	if cfg == nil {
-		v = reflect.ValueOf(&struct{}{})
-	} else {
-		v = reflect.ValueOf(cfg)
-	}
-
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if v.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
+	if cfg != nil {
+		m = makeNodeStruct(reflect.ValueOf(cfg), reflect.TypeOf(cfg))
 	}
 
 	fmt.Fprintf(w, "%s\n", col.titles("Usage:"))
@@ -100,11 +92,8 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		fmt.Fprintln(w)
 	}
 
-	cnt := 0
-	set := newFlagSet(makeValue(v), ld.Name, ld.Sources...)
-	set.VisitAll(func(f *flag.Flag) { cnt++ })
-
-	if cnt != 0 {
+	set := newFlagSet(m, ld.Name, ld.Sources...)
+	if m.Len() != 0 {
 		fmt.Fprintf(w, "%s\n", col.titles("Options:"))
 	}
 
@@ -118,10 +107,11 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		var boolean bool
 
 		switch v := f.Value.(type) {
-		case flagValue:
-			t = prettyValueType(v.v)
-			empty = isEmptyValue(v.v)
-			boolean = v.IsBoolFlag()
+		case Node:
+			x := reflect.ValueOf(v.Value())
+			t = prettyType(x.Type())
+			empty = isEmptyValue(x)
+			boolean = isBoolFlag(x)
 		case FlagSource:
 			t = "source"
 		default:
@@ -156,16 +146,13 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 	})
 }
 
-func prettyValueType(v reflect.Value) string {
-	if x, ok := v.Interface().(specialValue); ok {
-		return prettyValueType(x.v)
-	}
-	return prettyType(v.Type())
-}
-
 func prettyType(t reflect.Type) string {
 	if t == nil {
 		return "unknown"
+	}
+
+	if _, ok := objconv.AdapterOf(t); ok {
+		return "value"
 	}
 
 	switch {
@@ -180,12 +167,6 @@ func prettyType(t reflect.Type) string {
 		return "duration"
 	case timeTimeType:
 		return "time"
-	case netTCPAddrType, netUDPAddrType:
-		return "address"
-	case urlURLType:
-		return "url"
-	case mailAddressType:
-		return "email"
 	}
 
 	switch t.Kind() {
@@ -267,4 +248,36 @@ func grey(s string) string {
 
 func normal(s string) string {
 	return s
+}
+
+func isEmptyValue(v reflect.Value) bool {
+	if !v.IsValid() {
+		return true
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Map:
+		return v.Len() == 0
+
+	case reflect.Struct:
+		return v.NumField() == 0
+	}
+
+	return reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
+}
+
+func isBoolFlag(v reflect.Value) bool {
+	type iface interface {
+		IsBoolFlag() bool
+	}
+
+	if !v.IsValid() {
+		return false
+	}
+
+	if x, ok := v.Interface().(iface); ok {
+		return x.IsBoolFlag()
+	}
+
+	return v.Kind() == reflect.Bool
 }
