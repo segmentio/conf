@@ -205,7 +205,7 @@ func makeNodeStruct(v reflect.Value, t reflect.Type) (m Map) {
 }
 
 func makeNodeMap(v reflect.Value, t reflect.Type) (m Map) {
-	if v.IsNil() {
+	if v.IsNil() && v.CanSet() {
 		v.Set(reflect.MakeMap(v.Type()))
 	}
 
