@@ -109,13 +109,24 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 		var h []string
 		var empty bool
 		var boolean bool
+		var object bool
+		var list bool
 
 		switch v := f.Value.(type) {
 		case Node:
 			x := reflect.ValueOf(v.Value())
 			t = prettyType(x.Type())
 			empty = isEmptyValue(x)
-			boolean = isBoolFlag(x)
+
+			switch v.(type) {
+			case Map:
+				object = true
+			case Array:
+				list = true
+			default:
+				boolean = isBoolFlag(x)
+			}
+
 		case FlagSource:
 			t = "source"
 		default:
@@ -135,7 +146,7 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			h = append(h, s)
 		}
 
-		if s := f.DefValue; len(s) != 0 && !empty && !boolean {
+		if s := f.DefValue; len(s) != 0 && !empty && !(boolean || object || list) {
 			h = append(h, col.defvals("(default "+s+")"))
 		}
 
