@@ -17,7 +17,7 @@ available that were covering the same use-cases but they often required doing
 type assertions on the configuration values which is always an opportunity to
 get the program to panic.
 
-- **Keeping the API minimal**, while the `flag` package offers the type safety
+- **Keeping the API minimal**, while the `flag` package offered the type safety
 we needed it is also very verbose to setup. With `conf`, only a single function
 call is needed to setup and load the entire program configuration.
 
