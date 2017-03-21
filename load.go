@@ -123,7 +123,8 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 		found := false
 		for _, c := range ld.Commands {
 			if c.Name == args[0] {
-				found, cmd = true, args[0]
+				found = true
+				cmd = args[0]
 				args = args[1:]
 				ld.Args = args
 				break
