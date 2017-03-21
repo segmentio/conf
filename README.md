@@ -123,7 +123,7 @@ func main() {
         Name:     "example",
         Args:     os.Args[1:],
         Commands: []conf.Command{
-			{"print", "Print the message passed to -m"},
+            {"print", "Print the message passed to -m"},
             {"version", "Show the program version"},
         },
     })
