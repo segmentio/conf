@@ -110,33 +110,34 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
 	}
 
+	if args, err = ld.load(v); err != nil {
+		return
+	}
+
 	if len(ld.Commands) != 0 {
-		if len(ld.Args) == 0 {
+		if len(args) == 0 {
 			err = errors.New("missing command")
 			return
 		}
 
 		found := false
 		for _, c := range ld.Commands {
-			if c.Name == ld.Args[0] {
-				found, cmd, ld.Args = true, ld.Args[0], ld.Args[1:]
+			if c.Name == args[0] {
+				found, cmd = true, args[0]
+				args = args[1:]
+				ld.Args = args
 				break
 			}
 		}
 
 		if !found {
-			err = errors.New("unknown command: " + ld.Args[0])
+			err = errors.New("unknown command: " + args[0])
 			return
 		}
 
 		if cfg == nil {
-			args = ld.Args
 			return
 		}
-	}
-
-	if args, err = ld.load(v); err != nil {
-		return
 	}
 
 	if err = validator.Validate(v.Interface()); err != nil {
