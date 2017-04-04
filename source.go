@@ -51,7 +51,11 @@ func (f SourceFunc) Load(dst Map) error {
 // will be looking at.
 func NewEnvSource(prefix string, env ...string) Source {
 	vars := makeEnvVars(env)
-	base := append(make([]string, 0, 10), prefix)
+	base := make([]string, 0, 10)
+
+	if prefix != "" {
+		base = append(base, prefix)
+	}
 
 	return SourceFunc(func(dst Map) (err error) {
 		dst.Scan(func(path []string, item MapItem) {
