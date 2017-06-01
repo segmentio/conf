@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	"github.com/segmentio/objconv"
-
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // PrintError outputs the error message for err to stderr.
@@ -209,7 +207,7 @@ type colors struct {
 }
 
 func stderr() colors {
-	if terminal.IsTerminal(2) {
+	if isTerminal(2) {
 		return colorized()
 	}
 	return monochrome()
