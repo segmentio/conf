@@ -270,6 +270,9 @@ func (s Scalar) Value() interface{} {
 	if !s.value.IsValid() {
 		return nil
 	}
+	if s.value.Kind() == reflect.Ptr && s.value.IsNil() {
+		return nil
+	}
 	return s.value.Interface()
 }
 
@@ -476,8 +479,8 @@ func (m Map) Set(s string) error {
 func (m Map) EncodeValue(e objconv.Encoder) error {
 	i := 0
 	return e.EncodeMap(m.Len(), func(ke objconv.Encoder, ve objconv.Encoder) (err error) {
-		item := m.items.nodes[i]
-		if err = ke.EncodeString(item.Name); err != nil {
+		item := &m.items.nodes[i]
+		if err = ke.Encode(item.Name); err != nil {
 			return
 		}
 		if err = item.Value.EncodeValue(ve); err != nil {
