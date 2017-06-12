@@ -271,7 +271,7 @@ func (s Scalar) Value() interface{} {
 		return nil
 	}
 	if s.value.Kind() == reflect.Ptr && s.value.IsNil() {
-		return nil
+		return reflect.Zero(s.value.Type())
 	}
 	return s.value.Interface()
 }
