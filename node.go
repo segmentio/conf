@@ -477,7 +477,7 @@ func (m Map) EncodeValue(e objconv.Encoder) error {
 	i := 0
 	return e.EncodeMap(m.Len(), func(ke objconv.Encoder, ve objconv.Encoder) (err error) {
 		item := m.items.nodes[i]
-		if err = ke.EncodeString(item.Name); err != nil {
+		if err = ke.Encode(item.Name); err != nil {
 			return
 		}
 		if err = item.Value.EncodeValue(ve); err != nil {
