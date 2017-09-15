@@ -14,7 +14,7 @@ import "runtime"
 //	conf.SetPPROF(config.PPROF)
 //
 type PPROF struct {
-	BlockProfileRate     int `conf:"block-profile-rate"     help:"Sets the mutex profile fraction to enable runtime profiling of lock contention, zero disables mutex profiling" validate:"min=0,max=1"`
+	BlockProfileRate     int `conf:"block-profile-rate"     help:"Sets the block profile rate to enable runtime profiling of blocking operations, zero disables block profiling" validate:"min=0,max=1"`
 	MutexProfileFraction int `conf:"mutex-profile-fraction" help:"Sets the mutex profile fraction to enable runtime profiling of lock contention, zero disables mutex profiling" validate:"min=0,max=1"`
 }
 
