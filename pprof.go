@@ -2,7 +2,7 @@ package conf
 
 import "runtime"
 
-// PPROF is a confiuration struct which can be used to configure the runtime
+// PPROF is a configuration struct which can be used to configure the runtime
 // profilers of programs.
 //
 //	config := struct{
