@@ -7,6 +7,8 @@ import "runtime"
 //
 //	config := struct{
 //		PPROF `conf:"pprof"`
+//	}{
+//		PPROF: conf.DefaultPPROF(),
 //	}
 //	conf.Load(&config)
 //	conf.SetPPROF(config.PPROF)
