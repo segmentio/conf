@@ -4,6 +4,13 @@ import "runtime"
 
 // PPROF is a confiuration struct which can be used to configure the runtime
 // profilers of programs.
+//
+//	config := struct{
+//		PPROF `conf:"pprof"`
+//	}
+//	conf.Load(&config)
+//	conf.SetPPROF(config.PPROF)
+//
 type PPROF struct {
 	BlockProfileRate     float64 `conf:"block-profile-rate"     help:"Sets the mutex profile fraction to enable runtime profiling of lock contention, zero disables mutex profiling" validate:"min=0,max=1"`
 	MutexProfileFraction float64 `conf:"mutex-profile-fraction" help:"Sets the mutex profile fraction to enable runtime profiling of lock contention, zero disables mutex profiling" validate:"min=0,max=1"`
