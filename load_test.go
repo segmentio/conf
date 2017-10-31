@@ -409,7 +409,7 @@ func TestValidator(t *testing.T) {
 
 func TestModifiers(t *testing.T) {
 	config := struct {
-		Email string `conf:"bind" validate:"nonzero" mod:"trim,lcase"`
+		Email string `conf:"email" validate:"nonzero" mod:"trim,lcase"`
 	}{
 		Email: " Test.Email@email.com",
 	}
