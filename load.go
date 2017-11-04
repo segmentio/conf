@@ -2,6 +2,7 @@ package conf
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,11 +13,20 @@ import (
 	"sort"
 	"strings"
 
+	"gopkg.in/go-playground/mold.v2/modifiers"
+
 	validator "gopkg.in/validator.v2"
 
 	// Load all default adapters of the objconv package.
 	_ "github.com/segmentio/objconv/adapters"
 	"github.com/segmentio/objconv/yaml"
+)
+
+var (
+	// Modifier is the default modification lib using the "mod" tag; it is
+	// exposed to allow registering of custom modifiers and aliases or to
+	// be set to a more central instance located in another repo.
+	Modifier = modifiers.New()
 )
 
 // Load the program's configuration into cfg, and returns the list of leftover
@@ -136,6 +146,10 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	}
 
 	if args, err = ld.load(v); err != nil {
+		return
+	}
+
+	if err = Modifier.Struct(context.Background(), cfg); err != nil {
 		return
 	}
 

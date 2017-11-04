@@ -407,6 +407,22 @@ func TestValidator(t *testing.T) {
 	}
 }
 
+func TestModifiers(t *testing.T) {
+	config := struct {
+		Email string `conf:"email" validate:"nonzero" mod:"trim,lcase"`
+	}{
+		Email: " Test.Email@email.com",
+	}
+
+	_, _, err := (Loader{}).Load(&config)
+	if err != nil {
+		t.Error("bad error:", err)
+	}
+	if config.Email != "test.email@email.com" {
+		t.Error("bad mod value:", config.Email)
+	}
+}
+
 func parseURL(s string) url.URL {
 	u, _ := url.Parse(s)
 	return *u
