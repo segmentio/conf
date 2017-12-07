@@ -3,8 +3,10 @@ package conf
 import (
 	"bytes"
 	"flag"
-	"html/template"
 	"strings"
+	"text/template"
+
+	"github.com/segmentio/objconv/json"
 )
 
 // Source is the interface that allow new types to be plugged into a loader to
@@ -119,6 +121,13 @@ func (f *fileSource) Load(dst Map) (err error) {
 	tpl := template.New(f.flag)
 	buf := &bytes.Buffer{}
 	buf.Grow(len(b))
+
+	tpl = tpl.Funcs(template.FuncMap{
+		"json": func(v interface{}) (string, error) {
+			b, err := json.Marshal(v)
+			return string(b), err
+		},
+	})
 
 	if _, err = tpl.Parse(string(b)); err != nil {
 		return
