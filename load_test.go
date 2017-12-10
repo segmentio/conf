@@ -338,6 +338,30 @@ points:
 	}
 }
 
+func TestTemplateFunc(t *testing.T) {
+	const configFile = "/tmp/conf-json-test.yml"
+	ioutil.WriteFile(configFile, []byte(`---
+hello: {{ .NAME | json }}
+`), 0644)
+	defer os.Remove(configFile)
+
+	var cfg struct {
+		Hello string `conf:"hello"`
+	}
+
+	_, _, err := defaultLoader([]string{"test", "-config-file", configFile}, []string{
+		"NAME=first: Luke, second: Leia",
+	}).Load(&cfg)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if cfg.Hello != "first: Luke, second: Leia" {
+		t.Error("bad value:", cfg.Hello)
+	}
+}
+
 func TestCommand(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		ld := Loader{
