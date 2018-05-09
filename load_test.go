@@ -15,6 +15,15 @@ import (
 )
 
 func TestFieldPath(t *testing.T) {
+
+	type Embedded struct {
+		Str string `conf:"str"`
+	}
+
+	type Container struct {
+		Embedded `conf:"_"`
+	}
+
 	tests := []struct {
 		value  interface{}
 		input  string
@@ -70,6 +79,20 @@ func TestFieldPath(t *testing.T) {
 			}{},
 			input:  "A.B",
 			output: "a.b",
+		},
+		{
+			value:  Container{},
+			input:  "Str",
+			output: "str",
+		},
+		{
+			value: struct {
+				A struct {
+					Container `conf:"_"`
+				} `conf:"a"`
+			}{},
+			input:  "a.Str",
+			output: "a.Str",
 		},
 	}
 
