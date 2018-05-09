@@ -211,7 +211,7 @@ func populateNodeStruct(originalT reflect.Type, path string, v reflect.Value, t 
 			continue
 		case "_":
 			path = path + "." + ft.Name
-			if ft.Type.Kind() != reflect.Struct && !ft.Anonymous {
+			if ft.Type.Kind() != reflect.Struct || !ft.Anonymous {
 				panic("found \"_\" on invalid type at path " + path + " in configuration: " + originalT.Name())
  			}
 			populateNodeStruct(originalT, path, fv, ft.Type, m)

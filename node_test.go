@@ -516,6 +516,10 @@ func Test_InvalidFlattenedEmbeddedStructs(t *testing.T) {
 		Str string `conf:"_"`
 	}
 
+	type EmbedNamedStruct struct {
+		Thing Thing1 `conf:"_"`
+	}
+
 	tests := []struct {
 		val          interface{}
 		errFragments []string
@@ -527,6 +531,10 @@ func Test_InvalidFlattenedEmbeddedStructs(t *testing.T) {
 		{
 			val: EmbedPrimitive{},
 			errFragments: []string{"\"_\"", "at path EmbedPrimitive.Str"},
+		},
+		{
+			val: EmbedNamedStruct{},
+			errFragments: []string{"\"_\"", "at path EmbedNamedStruct.Thing"},
 		},
 	}
 
