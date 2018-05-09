@@ -3,6 +3,7 @@ package conf
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -456,4 +457,98 @@ func TestNodeJSON(t *testing.T) {
 			})
 		}
 	})
+}
+
+func Test_FlattenedEmbeddedStructs(t *testing.T) {
+
+	type Smallest struct {
+		SmallestOne string
+	}
+
+	type Small struct {
+		Smallest `conf:"_"`
+		SmallOne string
+	}
+
+	type Medium struct {
+		Small `conf:"_"`
+		MediumOne string
+	}
+
+	type Matroska struct {
+		Medium `conf:"_"`
+		LargeOne string
+	}
+
+	m := Matroska{}
+	node := makeNodeStruct(reflect.ValueOf(m), reflect.TypeOf(m))
+	if len(node.Items()) != 4 {
+		t.Errorf("expected to find four flattened fields...got %d", len(node.Items()))
+	}
+
+	for _, name := range []string{"SmallestOne", "SmallOne", "MediumOne", "LargeOne"} {
+		f := node.Item(name)
+		if f == nil {
+			t.Errorf("flattened field %s is missing", name)
+		}
+		if f.Kind() != ScalarNode {
+			t.Errorf("flattened field %s should have been scalar but was %d", name, f.Kind())
+		}
+	}
+}
+
+func Test_InvalidFlattenedEmbeddedStructs(t *testing.T) {
+
+	type Thing1 struct {
+		Stuff string
+	}
+
+	type Thing2 struct {
+		Stuff string
+	}
+
+	type ConflictingName struct {
+		Thing1 `conf:"_"`
+		Thing2 `conf:"_"`
+	}
+
+	type EmbedPrimitive struct {
+		Str string `conf:"_"`
+	}
+
+	tests := []struct {
+		val          interface{}
+		errFragments []string
+	} {
+		{
+			val: ConflictingName{},
+			errFragments: []string{"'Stuff'", "duplicate"},
+		},
+		{
+			val: EmbedPrimitive{},
+			errFragments: []string{"\"_\"", "at path EmbedPrimitive.Str"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(reflect.TypeOf(tt.val).Name(), func(t *testing.T) {
+			defer func() {
+				recovered := recover()
+				msg, ok := recovered.(string)
+				if !ok {
+					t.Errorf("expected a string to be recovered...got %v", recovered)
+				}
+
+				// NOTE : ensure that the type name is included in the message!
+				for _, frag := range append(tt.errFragments, reflect.TypeOf(tt.val).Name()) {
+					if !strings.Contains(msg, frag) {
+						t.Errorf("message should have contained fragment \"%s\": %s", frag, msg)
+					}
+				}
+			}()
+
+			makeNodeStruct(reflect.ValueOf(tt.val), reflect.TypeOf(tt.val))
+			t.Error("test should have paniced")
+		})
+	}
 }

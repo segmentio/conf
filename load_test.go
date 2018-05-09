@@ -483,3 +483,63 @@ func TestMakeEnvVars(t *testing.T) {
 		t.Error(envVars)
 	}
 }
+
+func TestEmbeddedStruct(t *testing.T) {
+
+	type Child struct {
+		ChildField1 string
+		ChildField2 string
+	}
+
+	type Branch struct {
+		Child `conf:"_"`
+		BranchField string
+	}
+
+	type Container struct {
+		Branch `conf:"_"`
+		OtherBranch Branch
+	}
+
+	testVal := Container{
+		Branch: Branch{
+			Child: Child{
+				ChildField1: "embedded-child-1",
+				ChildField2: "embedded-child-2",
+			},
+			BranchField: "embedded-branch",
+		},
+		OtherBranch: Branch{
+			Child: Child{
+				ChildField1: "no-embedded-child-1",
+				ChildField2: "no-embedded-child-2",
+			},
+			BranchField: "no-embedded-branch",
+		},
+	}
+
+	ld := Loader{
+		Name: "test",
+		Args: []string{
+			"-ChildField1", "embedded-child-1",
+			"-ChildField2", "embedded-child-2",
+			"-BranchField", "embedded-branch",
+			"-OtherBranch.ChildField1", "no-embedded-child-1",
+			"-OtherBranch.ChildField2", "no-embedded-child-2",
+			"-OtherBranch.BranchField", "no-embedded-branch",
+		},
+	}
+
+	val := reflect.New(reflect.TypeOf(testVal))
+
+	if _, _, err := ld.Load(val.Interface()); err != nil {
+		t.Error(err)
+		t.Log("<<<", testVal)
+		t.Log(">>>", val.Elem().Interface())
+		return
+	}
+
+	if v := val.Elem().Interface(); !reflect.DeepEqual(testVal, v) {
+		t.Errorf("bad value:\n<<< %#v\n>>> %#v", testVal, v)
+	}
+}
