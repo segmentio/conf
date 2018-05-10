@@ -15,6 +15,15 @@ import (
 )
 
 func TestFieldPath(t *testing.T) {
+
+	type Embedded struct {
+		Str string `conf:"str"`
+	}
+
+	type Container struct {
+		Embedded `conf:"_"`
+	}
+
 	tests := []struct {
 		value  interface{}
 		input  string
@@ -70,6 +79,20 @@ func TestFieldPath(t *testing.T) {
 			}{},
 			input:  "A.B",
 			output: "a.b",
+		},
+		{
+			value:  Container{},
+			input:  "Str",
+			output: "str",
+		},
+		{
+			value: struct {
+				A struct {
+					Container `conf:"_"`
+				} `conf:"a"`
+			}{},
+			input:  "a.Str",
+			output: "a.Str",
 		},
 	}
 
@@ -481,5 +504,65 @@ func TestMakeEnvVars(t *testing.T) {
 		"Other":  "",
 	}) {
 		t.Error(envVars)
+	}
+}
+
+func TestEmbeddedStruct(t *testing.T) {
+
+	type Child struct {
+		ChildField1 string
+		ChildField2 string
+	}
+
+	type Branch struct {
+		Child `conf:"_"`
+		BranchField string
+	}
+
+	type Container struct {
+		Branch `conf:"_"`
+		OtherBranch Branch
+	}
+
+	testVal := Container{
+		Branch: Branch{
+			Child: Child{
+				ChildField1: "embedded-child-1",
+				ChildField2: "embedded-child-2",
+			},
+			BranchField: "embedded-branch",
+		},
+		OtherBranch: Branch{
+			Child: Child{
+				ChildField1: "no-embedded-child-1",
+				ChildField2: "no-embedded-child-2",
+			},
+			BranchField: "no-embedded-branch",
+		},
+	}
+
+	ld := Loader{
+		Name: "test",
+		Args: []string{
+			"-ChildField1", "embedded-child-1",
+			"-ChildField2", "embedded-child-2",
+			"-BranchField", "embedded-branch",
+			"-OtherBranch.ChildField1", "no-embedded-child-1",
+			"-OtherBranch.ChildField2", "no-embedded-child-2",
+			"-OtherBranch.BranchField", "no-embedded-branch",
+		},
+	}
+
+	val := reflect.New(reflect.TypeOf(testVal))
+
+	if _, _, err := ld.Load(val.Interface()); err != nil {
+		t.Error(err)
+		t.Log("<<<", testVal)
+		t.Log(">>>", val.Elem().Interface())
+		return
+	}
+
+	if v := val.Elem().Interface(); !reflect.DeepEqual(testVal, v) {
+		t.Errorf("bad value:\n<<< %#v\n>>> %#v", testVal, v)
 	}
 }

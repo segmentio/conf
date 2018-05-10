@@ -276,16 +276,24 @@ func fieldPath(typ reflect.Type, path string) string {
 	}
 
 	if field, ok := typ.FieldByName(name); ok {
-		if name = field.Tag.Get("conf"); len(name) == 0 {
+		name = field.Tag.Get("conf")
+		if len(name) == 0 {
 			name = field.Name
+		} else if name == "_" {
+			name = ""
 		}
+
 		if len(path) != 0 {
 			path = fieldPath(field.Type, path)
 		}
 	}
 
 	if len(path) != 0 {
-		name += "." + path
+		if len(name) == 0 {
+			name = path
+		} else {
+			name += "." + path
+		}
 	}
 
 	return name

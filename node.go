@@ -178,6 +178,25 @@ func makeNodeStruct(v reflect.Value, t reflect.Type) (m Map) {
 	m.value = v
 	m.items = newMapItems()
 
+	populateNodeStruct(t, t.Name(), v, t, m)
+
+	// if using the "_" notation to embed structs, it's possible that names are no longer unique.
+	props := make(map[string]struct{})
+	for _, item := range m.Items() {
+		if _, ok := props[item.Name]; ok {
+			panic("duplicate name '" + item.Name + "' found after collapsing embedded structs in configuration: " + t.String())
+		}
+		props[item.Name] = struct{}{}
+	}
+
+	return
+}
+
+// populateNodeStruct is the mutually recursive helper of makeNodeStruct to create the node struct with potentially
+// embedded types.  It will populate m with the struct fields from v.  The original type and path of the current field
+// are passed in order to create decent panic strings if an invalid configuration is detected.
+func populateNodeStruct(originalT reflect.Type, path string, v reflect.Value, t reflect.Type, m Map) {
+
 	for i, n := 0, v.NumField(); i != n; i++ {
 		fv := v.Field(i)
 		ft := t.Field(i)
@@ -190,6 +209,13 @@ func makeNodeStruct(v reflect.Value, t reflect.Type) (m Map) {
 		switch name {
 		case "-":
 			continue
+		case "_":
+			path = path + "." + ft.Name
+			if ft.Type.Kind() != reflect.Struct || !ft.Anonymous {
+				panic("found \"_\" on invalid type at path " + path + " in configuration: " + originalT.Name())
+ 			}
+			populateNodeStruct(originalT, path, fv, ft.Type, m)
+			continue
 		case "":
 			name = ft.Name
 		}
@@ -200,8 +226,6 @@ func makeNodeStruct(v reflect.Value, t reflect.Type) (m Map) {
 			Value: makeNode(fv),
 		})
 	}
-
-	return
 }
 
 func makeNodeMap(v reflect.Value, t reflect.Type) (m Map) {
