@@ -77,6 +77,32 @@ $ go run ./example.go -m 'Hello World!'
 Hello World!
 ```
 
+Environment Variables
+---------------------
+
+By default, `conf` will look for environment variables before loading command-line configuration flags with one important caveat: environment variables are prefixed with the program name. For example, given a program named "foobar":
+
+```
+func main() {
+	config := struct {
+		Name string `conf:"name"`
+	}{
+		Name: "default",
+	}
+	conf.Load(&config)
+	fmt.Println("Hello", config.Name)
+}
+```
+
+The following will be output:
+
+```
+$ ./foobar                                    // "Hello default"
+$ FOOBAR_NAME=world ./foobar                  // "Hello world"
+$ FOOBAR_NAME=world ./foobar --name neighbor  // "Hello neighbor"
+$ MAIN_NAME=world go run main.go              // "Hello world"
+```
+
 Advanced Usage
 --------------
 
