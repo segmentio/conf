@@ -109,15 +109,15 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 	}
 
 	if v.Kind() != reflect.Ptr {
-		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
+		panic(fmt.Sprintf("cannot load configuration into non-pointer type: %T", cfg))
 	}
 
 	if v.IsNil() {
-		panic(fmt.Sprintf("cannot load configuration into nil %T", cfg))
+		panic(fmt.Sprintf("cannot load configuration into nil pointer of type: %T", cfg))
 	}
 
 	if v = v.Elem(); v.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("cannot load configuration into %T", cfg))
+		panic(fmt.Sprintf("cannot load configuration into non-struct pointer: %T", cfg))
 	}
 
 	if len(ld.Commands) != 0 {
