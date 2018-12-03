@@ -178,28 +178,49 @@ func makeNodeStruct(v reflect.Value, t reflect.Type) (m Map) {
 	m.value = v
 	m.items = newMapItems()
 
-	for i, n := 0, v.NumField(); i != n; i++ {
-		fv := v.Field(i)
-		ft := t.Field(i)
+	var recurse func(v reflect.Value, t reflect.Type)
+	recurse = func(v reflect.Value, t reflect.Type) {
+		for i, n := 0, v.NumField(); i != n; i++ {
+			fv := v.Field(i)
+			ft := t.Field(i)
 
-		if !isExported(ft) {
-			continue
+			if ft.Anonymous {
+				// Support embedded types:
+				//
+				// type Point3D struct {
+				//     image.Point
+				//     Z int
+				// }
+
+				// type config struct {
+				//     Size Point3D `conf:"size"`
+				// }
+				//
+				// $ ./foobar -size.X=10 -size.Y=11 -size.Z=12
+				recurse(fv, ft.Type)
+				continue
+			}
+
+			if !isExported(ft) {
+				continue
+			}
+
+			name, help := ft.Tag.Get("conf"), ft.Tag.Get("help")
+			switch name {
+			case "-":
+				continue
+			case "":
+				name = ft.Name
+			}
+
+			m.items.push(MapItem{
+				Name:  name,
+				Help:  help,
+				Value: makeNode(fv),
+			})
 		}
-
-		name, help := ft.Tag.Get("conf"), ft.Tag.Get("help")
-		switch name {
-		case "-":
-			continue
-		case "":
-			name = ft.Name
-		}
-
-		m.items.push(MapItem{
-			Name:  name,
-			Help:  help,
-			Value: makeNode(fv),
-		})
 	}
+	recurse(v, t)
 
 	return
 }
