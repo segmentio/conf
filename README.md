@@ -103,6 +103,19 @@ $ FOOBAR_NAME=world ./foobar --name neighbor  // "Hello neighbor"
 $ MAIN_NAME=world go run main.go              // "Hello world"
 ```
 
+If you want to hard-code the prefix to guarantee immutability or just to customize it, you can supply a custom loader config:
+
+```
+loader := conf.Loader{
+	Name: "my-service",
+	Args: os.Args[1:],
+	Sources: []conf.Source{
+		conf.NewEnvSource("MY_SVC", os.Environ()...),
+	},
+}
+conf.LoadWith(&config, loader)```
+```
+
 Advanced Usage
 --------------
 
