@@ -113,7 +113,7 @@ loader := conf.Loader{
 		conf.NewEnvSource("MY_SVC", os.Environ()...),
 	},
 }
-conf.LoadWith(&config, loader)```
+conf.LoadWith(&config, loader)
 ```
 
 Advanced Usage
