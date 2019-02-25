@@ -373,7 +373,9 @@ func TestNodeString(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.repr, func(t *testing.T) {
 			if repr := test.node.String(); repr != test.repr {
-				t.Error(repr)
+				t.Error("representation mismatch")
+				t.Log("expected:", test.repr)
+				t.Log("found:   ", repr)
 			}
 		})
 	}
@@ -471,12 +473,12 @@ func Test_FlattenedEmbeddedStructs(t *testing.T) {
 	}
 
 	type Medium struct {
-		Small `conf:"_"`
+		Small     `conf:"_"`
 		MediumOne string
 	}
 
 	type Matroska struct {
-		Medium `conf:"_"`
+		Medium   `conf:"_"`
 		LargeOne string
 	}
 
@@ -523,17 +525,17 @@ func Test_InvalidFlattenedEmbeddedStructs(t *testing.T) {
 	tests := []struct {
 		val          interface{}
 		errFragments []string
-	} {
+	}{
 		{
-			val: ConflictingName{},
+			val:          ConflictingName{},
 			errFragments: []string{"'Stuff'", "duplicate"},
 		},
 		{
-			val: EmbedPrimitive{},
+			val:          EmbedPrimitive{},
 			errFragments: []string{"\"_\"", "at path EmbedPrimitive.Str"},
 		},
 		{
-			val: EmbedNamedStruct{},
+			val:          EmbedNamedStruct{},
 			errFragments: []string{"\"_\"", "at path EmbedNamedStruct.Thing"},
 		},
 	}

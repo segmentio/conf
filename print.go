@@ -193,7 +193,11 @@ func prettyType(t reflect.Type) string {
 	case reflect.Ptr:
 		return prettyType(t.Elem())
 	default:
-		return t.String()
+		s := strings.ToLower(t.String())
+		if i := strings.LastIndexByte(s, '.'); i >= 0 {
+			s = s[i+1:]
+		}
+		return s
 	}
 }
 
