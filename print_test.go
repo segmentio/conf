@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type Bytes uint64
+
 func TestPrettyType(t *testing.T) {
 	tests := []struct {
 		v interface{}
@@ -43,6 +45,8 @@ func TestPrettyType(t *testing.T) {
 		{map[int]int{}, "object"},
 		{struct{}{}, "object"},
 		{&struct{}{}, "object"},
+
+		{Bytes(0), "bytes"},
 	}
 
 	for _, test := range tests {
