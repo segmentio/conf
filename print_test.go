@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type Bytes uint64
@@ -85,8 +87,9 @@ func TestPrintHelp(t *testing.T) {
 		C int
 		D bool `help:"Set D"`
 		E bool `conf:"enable" help:"Enable E"`
+		F bool `help:"run in super mode"`
 		T time.Duration
-	}{A: 1, T: time.Second})
+	}{A: 1, F: true, T: time.Second})
 
 	const txt = "Usage:\n" +
 		"  test [command] [options...]\n" +
@@ -105,6 +108,8 @@ func TestPrintHelp(t *testing.T) {
 		"\n" +
 		"  -D\tSet D\n" +
 		"\n" +
+		"  -F\trun in super mode (default true)\n" +
+		"\n" +
 		"  -T duration\n" +
 		"    \t(default 1s)\n" +
 		"\n" +
@@ -112,9 +117,7 @@ func TestPrintHelp(t *testing.T) {
 		"    \tEnable E\n" +
 		"\n"
 
-	if s := b.String(); s != txt {
-		t.Error(s)
-		t.Error(txt)
-		t.Error(len(s), len(txt))
+	if diff := cmp.Diff(txt, b.String()); diff != "" {
+		t.Error(diff)
 	}
 }

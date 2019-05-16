@@ -144,8 +144,17 @@ func (ld Loader) fprintHelp(w io.Writer, cfg interface{}, col colors) {
 			h = append(h, s)
 		}
 
-		if s := f.DefValue; len(s) != 0 && !empty && !(boolean || object || list) {
-			h = append(h, col.defvals("(default "+s+")"))
+		if s := f.DefValue; len(s) != 0 {
+			switch {
+			case empty, object, list:
+			case boolean:
+				if s == "false" {
+					break
+				}
+				fallthrough
+			default:
+				h = append(h, col.defvals("(default "+s+")"))
+			}
 		}
 
 		if len(h) != 0 {
