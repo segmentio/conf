@@ -515,12 +515,12 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	type Branch struct {
-		Child `conf:"_"`
+		Child       `conf:"_"`
 		BranchField string
 	}
 
 	type Container struct {
-		Branch `conf:"_"`
+		Branch      `conf:"_"`
 		OtherBranch Branch
 	}
 
@@ -565,4 +565,73 @@ func TestEmbeddedStruct(t *testing.T) {
 	if v := val.Elem().Interface(); !reflect.DeepEqual(testVal, v) {
 		t.Errorf("bad value:\n<<< %#v\n>>> %#v", testVal, v)
 	}
+}
+
+func TestSubCommandWithFileSource(t *testing.T) {
+	type targetConfig struct {
+		Name   string            `conf:"name"   help:"Name of the target."`
+		URL    string            `conf:"url"    help:"URL of the target."`
+		Labels map[string]string `conf:"labels" help:"Additional labels for the target."`
+	}
+
+	type staticConfig struct {
+		Targets []targetConfig `conf:"targets" help:"List of static targets to be scraped."`
+	}
+
+	type runConfig struct {
+		APIKey  string       `conf:"apikey" validate:"nonzero"`
+		Runtime string       `conf:"runtime"     help:"Define the runtime hosting Promeneur."`
+		Static  staticConfig `conf:"static"      help:"Static targets configuration."`
+	}
+
+	configFile, err := ioutil.TempFile("", "config")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Fprint(configFile, `---
+apikey: '123456789'
+
+static:
+  targets:
+    - name: "cadvisor"
+      url: "https://kubernetes.default.svc:443/api/v1/nodes/{{ .NODE_NAME }}/proxy/metrics/cadvisor"
+`)
+	configFile.Close()
+	defer os.Remove(configFile.Name())
+
+	args := []string{
+		"run", "-config-file", configFile.Name(), "-runtime", "kubernetes",
+	}
+
+	cmd, args := LoadWith(nil, Loader{
+		Args: args,
+		Commands: []Command{
+			{"run", ""},
+		},
+	})
+
+	if cmd != "run" {
+		t.Fatal("command mismatch:", cmd)
+	}
+
+	environ := []string{
+		"NODE_NAME=localhost",
+	}
+
+	config := new(runConfig)
+
+	_, args = LoadWith(config, Loader{
+		Name: "run",
+		Args: args,
+		Sources: []Source{
+			NewFileSource("config-file", makeEnvVars(environ), ioutil.ReadFile, yaml.Unmarshal),
+			NewEnvSource("TEST", environ...),
+		},
+	})
+
+	if len(args) != 0 {
+		t.Error("unexpected remaining arguments:", args)
+	}
+
+	t.Log(config)
 }
