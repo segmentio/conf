@@ -153,6 +153,12 @@ var (
 			args: []string{"-A", "42"},
 			env:  []string{"TEST_A=42"},
 		},
+		{
+			val:  struct{ A string }{"0123456789"}, // convert a longer digit sequence to string
+			file: `A: '0123456789'`,
+			args: []string{"-A", "0123456789"},
+			env:  []string{"TEST_A=0123456789"},
+		},
 
 		{
 			val:  struct{ S string }{"Hello World!"},
@@ -515,12 +521,12 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	type Branch struct {
-		Child `conf:"_"`
+		Child       `conf:"_"`
 		BranchField string
 	}
 
 	type Container struct {
-		Branch `conf:"_"`
+		Branch      `conf:"_"`
 		OtherBranch Branch
 	}
 

@@ -213,7 +213,7 @@ func populateNodeStruct(originalT reflect.Type, path string, v reflect.Value, t 
 			path = path + "." + ft.Name
 			if ft.Type.Kind() != reflect.Struct || !ft.Anonymous {
 				panic("found \"_\" on invalid type at path " + path + " in configuration: " + originalT.Name())
- 			}
+			}
 			populateNodeStruct(originalT, path, fv, ft.Type, m)
 			continue
 		case "":
@@ -308,8 +308,13 @@ func (s Scalar) Set(str string) (err error) {
 			err = fmt.Errorf("%s", x)
 		}
 	}()
-	ptr := s.value.Addr().Interface()
 
+	if s.value.Kind() == reflect.String {
+		s.value.SetString(str)
+		return
+	}
+
+	ptr := s.value.Addr().Interface()
 	if err = yaml.Unmarshal([]byte(str), ptr); err != nil {
 		if b, _ := json.Marshal(str); b != nil {
 			if json.Unmarshal(b, ptr) == nil {
