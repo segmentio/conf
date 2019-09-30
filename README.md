@@ -207,10 +207,10 @@ type Source interface {
 ```
 
 The source has a single method which receives a `conf.Map` value which is an
-itermediate representation of the configuration struct that was received by the
+intermediate representation of the configuration struct that was received by the
 loader.  
 The package uses this type internally as well for loading configuration values
-from the program arguments, it can be seen as a reflective representiong of the
+from the program arguments, it can be seen as a reflective representation of the
 original value which exposes an API that is more convenient to use that having
 a raw `reflect.Value`.
 
