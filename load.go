@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"gopkg.in/go-playground/mold.v2/modifiers"
-
 	validator "gopkg.in/validator.v2"
 
 	// Load all default adapters of the objconv package.
@@ -22,11 +21,16 @@ import (
 	"github.com/segmentio/objconv/yaml"
 )
 
+// MoldTransformer decouples Modifier from the concrete type and lets client code to replace its implementation
+type MoldTransformer interface {
+	Struct(context.Context, interface{}) error
+}
+
 var (
 	// Modifier is the default modification lib using the "mod" tag; it is
 	// exposed to allow registering of custom modifiers and aliases or to
 	// be set to a more central instance located in another repo.
-	Modifier = modifiers.New()
+	Modifier MoldTransformer = modifiers.New()
 )
 
 // Load the program's configuration into cfg, and returns the list of leftover
