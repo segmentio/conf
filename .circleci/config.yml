@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/segmentio/conf
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.12
     steps:
       - run: git clone https://github.com/segmentio/conf.git /go/src/github.com/segmentio/conf
       - run: go get -v -t ./...
