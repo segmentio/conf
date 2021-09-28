@@ -5,8 +5,7 @@ jobs:
     docker:
       - image: circleci/golang
     steps:
-      - checkout
-      - setup_remote_docker: { reusable: true, docker_layer_caching: true }
+      - run: git clone https://github.com/segmentio/conf.git /go/src/github.com/segmentio/conf
       - run: go get -v -t ./...
       - run: go vet ./...
       - run: go test -v -race ./...
