@@ -13,24 +13,29 @@ import (
 	"sort"
 	"strings"
 
-	"gopkg.in/go-playground/mold.v2/modifiers"
-	validator "gopkg.in/validator.v2"
-
 	// Load all default adapters of the objconv package.
 	_ "github.com/segmentio/objconv/adapters"
 	"github.com/segmentio/objconv/yaml"
+	"gopkg.in/go-playground/mold.v2/modifiers"
+	validator "gopkg.in/validator.v2"
 )
 
-// MoldTransformer decouples Modifier from the concrete type and lets client code to replace its implementation
+// MoldTransformer decouples Modifier from the concrete type and lets client code replace its implementation
 type MoldTransformer interface {
 	Struct(context.Context, interface{}) error
+}
+
+// ValidatorInterface decouples Validator from the concrete type and lets client code replace its implementation
+type ValidatorInterface interface {
+	Validate(interface{}) error
 }
 
 var (
 	// Modifier is the default modification lib using the "mod" tag; it is
 	// exposed to allow registering of custom modifiers and aliases or to
 	// be set to a more central instance located in another repo.
-	Modifier MoldTransformer = modifiers.New()
+	Modifier  MoldTransformer    = modifiers.New()
+	Validator ValidatorInterface = validator.NewValidator()
 )
 
 // Load the program's configuration into cfg, and returns the list of leftover
@@ -157,7 +162,7 @@ func (ld Loader) Load(cfg interface{}) (cmd string, args []string, err error) {
 		return
 	}
 
-	if err = validator.Validate(v.Interface()); err != nil {
+	if err = Validator.Validate(v.Interface()); err != nil {
 		err = makeValidationError(err, v.Type())
 	}
 
