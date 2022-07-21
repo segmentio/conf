@@ -338,6 +338,7 @@ points:
 
 	type config struct {
 		// should not impact loading configuration
+		//lint:ignore U1000 part of the test
 		unexported bool
 		Ignored    string `conf:"-"`
 
