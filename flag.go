@@ -2,13 +2,13 @@ package conf
 
 import (
 	"flag"
-	"io/ioutil"
+	"io"
 	"strings"
 )
 
 func newFlagSet(cfg Map, name string, sources ...Source) *flag.FlagSet {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
-	set.SetOutput(ioutil.Discard)
+	set.SetOutput(io.Discard)
 
 	cfg.Scan(func(path []string, item MapItem) {
 		set.Var(item.Value, strings.Join(append(path, item.Name), "."), item.Help)

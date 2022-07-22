@@ -67,6 +67,7 @@ func NewEnvSource(prefix string, env ...string) Source {
 			k := snakecaseUpper(strings.Join(path, "_"))
 
 			if v, ok := vars[k]; ok {
+				// this only matches at the very end
 				if e := item.Value.Set(v); e != nil {
 					err = e
 				}

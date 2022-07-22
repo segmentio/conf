@@ -2,7 +2,6 @@ package conf
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/mail"
 	"net/url"
@@ -297,7 +296,7 @@ func TestLoad(t *testing.T) {
 
 func TestDefaultLoader(t *testing.T) {
 	const configFile = "/tmp/conf-test.yml"
-	ioutil.WriteFile(configFile, []byte(`---
+	os.WriteFile(configFile, []byte(`---
 points:
  - { 'x': 0, 'y': 0 }
  - { 'x': 1, 'y': 2 }
@@ -370,7 +369,7 @@ points:
 
 func TestTemplateFunc(t *testing.T) {
 	const configFile = "/tmp/conf-json-test.yml"
-	ioutil.WriteFile(configFile, []byte(`---
+	os.WriteFile(configFile, []byte(`---
 hello: {{ .NAME | json }}
 `), 0644)
 	defer os.Remove(configFile)

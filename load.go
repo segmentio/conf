@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -48,7 +47,7 @@ var (
 // If an error is detected with the configurable the function print the usage
 // message to stderr and exit with status code 1.
 func Load(cfg interface{}) (args []string) {
-	_, args = LoadWith(cfg, defaultLoader(os.Args, os.Environ()))
+	_, args = LoadWith(cfg, DefaultLoader)
 	return
 }
 
@@ -190,13 +189,21 @@ func (ld Loader) load(cfg reflect.Value) (args []string, err error) {
 	return
 }
 
+var DefaultLoader Loader
+
+func init() {
+	env := os.Environ()
+	args := os.Args
+	DefaultLoader = defaultLoader(args, env)
+}
+
 func defaultLoader(args []string, env []string) Loader {
 	var name = filepath.Base(args[0])
 	return Loader{
 		Name: name,
 		Args: args[1:],
 		Sources: []Source{
-			NewFileSource("config-file", makeEnvVars(env), ioutil.ReadFile, yaml.Unmarshal),
+			NewFileSource("config-file", makeEnvVars(env), os.ReadFile, yaml.Unmarshal),
 			NewEnvSource(name, env...),
 		},
 	}
