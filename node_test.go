@@ -341,7 +341,7 @@ func TestNodeString(t *testing.T) {
 			node: Scalar{reflect.ValueOf("Hello World!")},
 		},
 		{
-			repr: `2016-12-31T23:42:59Z`,
+			repr: `"2016-12-31T23:42:59Z"`,
 			node: Scalar{reflect.ValueOf(date)},
 		},
 		{
@@ -374,8 +374,8 @@ func TestNodeString(t *testing.T) {
 		t.Run(test.repr, func(t *testing.T) {
 			if repr := test.node.String(); repr != test.repr {
 				t.Error("representation mismatch")
-				t.Log("expected:", test.repr)
-				t.Log("found:   ", repr)
+				t.Logf("want: %v, %#v", reflect.TypeOf(test.repr), test.repr)
+				t.Logf("got: %v, %#v", reflect.TypeOf(repr), repr)
 			}
 		})
 	}
