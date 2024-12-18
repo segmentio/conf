@@ -120,7 +120,7 @@ func TestEqualNode(t *testing.T) {
 		},
 
 		{
-			name: "non-equal arrays (length mistmatch)",
+			name: "non-equal arrays (length mismatch)",
 			node1: Array{items: newArrayItems(
 				Scalar{reflect.ValueOf(1)},
 				Scalar{reflect.ValueOf(2)},
@@ -558,7 +558,7 @@ func Test_InvalidFlattenedEmbeddedStructs(t *testing.T) {
 			}()
 
 			makeNodeStruct(reflect.ValueOf(tt.val), reflect.TypeOf(tt.val))
-			t.Error("test should have paniced")
+			t.Error("test should have panicked")
 		})
 	}
 }

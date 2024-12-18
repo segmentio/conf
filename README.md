@@ -27,7 +27,7 @@ configuration values. It also has support for sub-commands on the command line,
 which is a common approach used by CLI tools.
 
 - **Supporting multiple sources**, because passing values through the command
-line is not always the best appraoch, programs may need to receive their
+line is not always the best approach, programs may need to receive their
 configuration from files, environment variables, secret stores, or other network
 locations.
 
@@ -195,7 +195,7 @@ Hello World!
 Custom Sources
 --------------
 
-We mentionned the `conf.Loader` type supported setting custom sources that the
+We mentioned the `conf.Loader` type supported setting custom sources that the
 program configuration can be loaded from. Here's the the `conf.Source` interface
 definition:
 ```go
