@@ -13,9 +13,9 @@ import (
 // make it possible to load configuration from new places.
 //
 // When the configuration is loaded the Load method of each source that was set
-// on a loader is called with an Node representating the configuration struct.
-// The typical implementation of a source is to load the serialized version of
-// the configuration and use an objconv decoder to build the node.
+// on a loader is called with a Node representing the configuration struct. The
+// typical implementation of a source is to load the serialized version of the
+// configuration and use an objconv decoder to build the node.
 type Source interface {
 	Load(dst Map) error
 }

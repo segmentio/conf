@@ -41,7 +41,7 @@ var (
 // configuration file if the -config-file option is present in the program
 // arguments.
 //
-// Values found in the progrma arguments take precedence over those found in
+// Values found in the program arguments take precedence over those found in
 // the environment, which takes precedence over the configuration file.
 //
 // If an error is detected with the configurable the function print the usage
